@@ -24,10 +24,10 @@ import UIKit
     /// Release amount, Default: 0.5
     open var releaseAmount: Float = 0.5 { didSet { setNeedsDisplay() } }
 
-    /// How much to slow the  drag - higher is slower, Default: 0.01
-    open var dragSlew: Float = 0.01
+    /// How much to slow the  drag - lower is slower, Default: 0.01
+    open var dragSlew: Float = 0.005
 
-    open var attackPaddingPercent: CGFloat = 0.01
+    open var attackPaddingPercent: CGFloat = 0.06
     open var releasePaddingPercent: CGFloat = 0.01
 
     private var decaySustainTouchAreaPath = UIBezierPath()
