@@ -14,6 +14,10 @@ class ADSRView: UIView {
     var sustainLevel: CGFloat = 0.5 { didSet { setNeedsDisplay() } }
     var releaseDuration: CGFloat = 448 { didSet { setNeedsDisplay() } }
 
+    private var minimumSectionSize: CGFloat {
+        return frame.width * 0.01
+    }
+
     override func draw(_ rect: CGRect) {
         super.draw(rect)
         drawCurveCanvas(size: rect.size, attackDuration: attackDuration, decayDurationMS: decayDuration,
@@ -23,6 +27,7 @@ class ADSRView: UIView {
     func drawCurveCanvas(size: CGSize = CGSize(width: 440, height: 151), attackDuration: CGFloat = 408,
                          decayDurationMS: CGFloat = 262, sustainLevel: CGFloat = 0.583,
                          releaseDurationMS: CGFloat = 448, maxADFraction: CGFloat = 0.75) {
+//        print("frame is \(frame) - minSize is \(minimumSectionSize)")
         //// General Declarations
         let context = UIGraphicsGetCurrentContext()!
 
@@ -164,14 +169,16 @@ class ADSRView: UIView {
 
         context.restoreGState()
 
-
         //// Curve Drawing
         context.saveGState()
         context.translateBy(x: 0, y: -1)
 
         let curvePath = UIBezierPath()
-        curvePath.move(to: initialPoint)
-        curvePath.addCurve(to: highPoint, controlPoint1: initialPoint, controlPoint2: CGPoint(x: highPoint.x - 140.45, y: highPoint.y))
+        curvePath.move(to: initialPoint)    // first point on curve
+        let controlPoint2 = CGPoint(x: initialPoint.x, y: highPoint.y)
+        print(controlPoint2)
+
+        curvePath.addCurve(to: highPoint, controlPoint1: initialPoint, controlPoint2: controlPoint2)
         curvePath.addCurve(to: sustainPoint, controlPoint1: highPoint, controlPoint2: CGPoint(x: sustainPoint.x - 90, y: sustainPoint.y + 0.2))
         curvePath.addLine(to: releasePoint)
         curvePath.addCurve(to: endPoint, controlPoint1: releasePoint, controlPoint2: CGPoint(x: endPoint.x - 139.14, y: endPoint.y))
