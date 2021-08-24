@@ -24,6 +24,9 @@ import UIKit
     /// Release duration in seconds, Default: 0.1
     open var releaseDuration: Float = 0.100
 
+    /// How much to slow the sustain drag - higher is slower, Default: 2
+    open var sustainDragSlew: Float = 2
+
     /// Attack duration in milliseconds
     var attackTime: CGFloat {
         get {
@@ -159,7 +162,7 @@ import UIKit
 
             if currentDragArea != "" {
                 if currentDragArea == "ds" {
-                    sustainPercent -= (touchLocation.y - lastPoint.y) / 10.0
+                    sustainPercent -= (touchLocation.y - lastPoint.y) / CGFloat(sustainDragSlew)
                     decayTime += touchLocation.x - lastPoint.x
                 }
                 if currentDragArea == "a" {
