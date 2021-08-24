@@ -138,14 +138,14 @@ import UIKit
             }
             attackAmount = max(min(attackAmount, 1), 0)
             decayAmount = max(min(decayAmount, 1), 0)
-            sustainLevel = min(max(sustainLevel, 0), 1)
+            sustainLevel = max(min(sustainLevel, 1), 0)
             releaseAmount = max(min(releaseAmount, 1), 0)
 
             if let callback = callback {
-                callback(Float(attackAmount),
-                         Float(decayAmount),
-                         Float(sustainLevel),
-                         Float(releaseAmount))
+                callback(attackAmount,
+                         decayAmount,
+                         sustainLevel,
+                         releaseAmount)
             }
             lastPoint = touchLocation
         }
