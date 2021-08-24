@@ -25,7 +25,7 @@ class ViewController: UIViewController {
     private func addADSR(frame: CGRect) {
         let height = frame.height * 0.5
         let width = frame.width
-        adsrView = ADSRView(frame: CGRect(x: 0, y: 0, width: width, height: height))
+        adsrView = ADSRView()
         view.addSubview(adsrView)
     }
 
@@ -62,16 +62,16 @@ class ViewController: UIViewController {
 
     @objc private func sliderValueDidChange(_ sender: UISlider) {
         if sender == slider1 {
-            adsrView.attackDuration = CGFloat(sender.value)
+            adsrView.attackDuration = sender.value
         }
         if sender == slider2 {
-            adsrView.decayDuration = CGFloat(sender.value)
+            adsrView.decayDuration = sender.value
         }
         if sender == slider3 {
-            adsrView.sustainLevel = CGFloat(sender.value)
+            adsrView.sustainLevel = sender.value
         }
         if sender == slider4 {
-            adsrView.releaseDuration = CGFloat(sender.value)
+            adsrView.releaseDuration = sender.value
         }
     }
 

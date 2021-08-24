@@ -7,122 +7,289 @@
 
 import UIKit
 
-class ADSRView: UIView {
+/// A click and draggable view of an ADSR Envelope (Atttack, Decay, Sustain, Release)
+@IBDesignable public class ADSRView: UIView {
+    /// Type of function to call when values of the ADSR have changed
+    public typealias ADSRCallback = (Float, Float, Float, Float) -> Void
 
-    var attackDuration: CGFloat = 408 { didSet { setNeedsDisplay() } }
-    var decayDuration: CGFloat = 262 { didSet { setNeedsDisplay() } }
-    var sustainLevel: CGFloat = 0.5 { didSet { setNeedsDisplay() } }
-    var releaseDuration: CGFloat = 448 { didSet { setNeedsDisplay() } }
+    /// Attack duration in seconds, Default: 0.1
+    open var attackDuration: Float = 0.100
 
-    private var minimumSectionSize: CGFloat {
-        return frame.width * 0.01
+    /// Decay duration in seconds, Default: 0.1
+    open var decayDuration: Float = 0.100
+
+    /// Sustain Level (0-1), Default: 0.5
+    open var sustainLevel: Float = 1.0
+
+    /// Release duration in seconds, Default: 0.1
+    open var releaseDuration: Float = 0.100
+
+    /// Attack duration in milliseconds
+    var attackTime: CGFloat {
+        get {
+            return CGFloat(attackDuration * 1_000.0)
+        }
+        set {
+            attackDuration = Float(newValue / 1_000.0)
+        }
     }
 
-    override func draw(_ rect: CGRect) {
-        super.draw(rect)
-        drawCurveCanvas(size: rect.size, attackDuration: attackDuration, decayDurationMS: decayDuration,
-                        sustainLevel: sustainLevel, releaseDurationMS: releaseDuration, maxADFraction: 0.75)
+    /// Decay duration in milliseconds
+    var decayTime: CGFloat {
+        get {
+            return CGFloat(decayDuration * 1_000.0)
+        }
+        set {
+            decayDuration = Float(newValue / 1_000.0)
+        }
     }
 
-    func drawCurveCanvas(size: CGSize = CGSize(width: 440, height: 151), attackDuration: CGFloat = 408,
-                         decayDurationMS: CGFloat = 262, sustainLevel: CGFloat = 0.583,
-                         releaseDurationMS: CGFloat = 448, maxADFraction: CGFloat = 0.75) {
-//        print("frame is \(frame) - minSize is \(minimumSectionSize)")
+    /// Sustain level as a percentage 0% - 100%
+    var sustainPercent: CGFloat {
+        get {
+            return CGFloat(sustainLevel * 100.0)
+        }
+        set {
+            sustainLevel = Float(newValue / 100.0)
+        }
+    }
+
+    /// Release duration in milliseconds
+    var releaseTime: CGFloat {
+        get {
+            return CGFloat(releaseDuration * 1_000.0)
+        }
+        set {
+            releaseDuration = Float(newValue / 1_000.0)
+        }
+    }
+
+    private var decaySustainTouchAreaPath = UIBezierPath()
+    private var attackTouchAreaPath = UIBezierPath()
+    private var releaseTouchAreaPath = UIBezierPath()
+
+    /// Function to call when the values of the ADSR changes
+    open var callback: ADSRCallback?
+    private var currentDragArea = ""
+
+    //// Color Declarations
+
+    /// Color in the attack portion of the UI element
+    @IBInspectable open var attackColor: UIColor = #colorLiteral(red: 0.767, green: 0.000, blue: 0.000, alpha: 1.000)
+
+    /// Color in the decay portion of the UI element
+    @IBInspectable open var decayColor: UIColor = #colorLiteral(red: 0.942, green: 0.648, blue: 0.000, alpha: 1.000)
+
+    /// Color in the sustain portion of the UI element
+    @IBInspectable open var sustainColor: UIColor = #colorLiteral(red: 0.320, green: 0.800, blue: 0.616, alpha: 1.000)
+
+    /// Color in the release portion of the UI element
+    @IBInspectable open var releaseColor: UIColor = #colorLiteral(red: 0.720, green: 0.519, blue: 0.888, alpha: 1.000)
+
+    /// Background color
+    @IBInspectable open var bgColor: UIColor = #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1)
+
+    /// Width of the envelope curve
+    @IBInspectable open var curveStrokeWidth: CGFloat = 1
+
+    /// Color of the envelope curve
+    @IBInspectable open var curveColor: UIColor = .black
+
+    var lastPoint = CGPoint.zero
+
+    // MARK: - Initialization
+
+    /// Initialize the view, usually with a callback
+    public init(callback: ADSRCallback? = nil) {
+        self.callback = callback
+        super.init(frame: CGRect(x: 0, y: 0, width: 440, height: 150))
+        backgroundColor = .clear
+    }
+
+    /// Initialization of the view from within interface builder
+    public required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+    }
+
+    // MARK: - Storyboard Rendering
+
+    /// Perform necessary operation to allow the view to be rendered in interface builder
+    override public func prepareForInterfaceBuilder() {
+        super.prepareForInterfaceBuilder()
+
+        contentMode = .scaleAspectFill
+        clipsToBounds = true
+    }
+
+    /// Size of the view
+    override public var intrinsicContentSize: CGSize {
+        return CGSize(width: 440, height: 150)
+    }
+
+    /// Requeire a constraint based layout with interface builder
+    override public class var requiresConstraintBasedLayout: Bool {
+        return true
+    }
+
+    // MARK: - Touch Handling
+
+    /// Handle new touches
+    override public func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let touch = touches.first {
+            let touchLocation = touch.location(in: self)
+
+            if decaySustainTouchAreaPath.contains(touchLocation) {
+                currentDragArea = "ds"
+            }
+            if attackTouchAreaPath.contains(touchLocation) {
+                currentDragArea = "a"
+            }
+            if releaseTouchAreaPath.contains(touchLocation) {
+                currentDragArea = "r"
+            }
+            lastPoint = touchLocation
+        }
+        setNeedsDisplay()
+    }
+
+    /// Handle moving touches
+    override public func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let touch = touches.first {
+            let touchLocation = touch.location(in: self)
+
+            if currentDragArea != "" {
+                if currentDragArea == "ds" {
+                    sustainPercent -= (touchLocation.y - lastPoint.y) / 10.0
+                    decayTime += touchLocation.x - lastPoint.x
+                }
+                if currentDragArea == "a" {
+                    attackTime += touchLocation.x - lastPoint.x
+                    attackTime -= touchLocation.y - lastPoint.y
+                }
+                if currentDragArea == "r" {
+                    releaseTime += touchLocation.x - lastPoint.x
+                    releaseTime -= touchLocation.y - lastPoint.y
+                }
+            }
+            attackTime = max(attackTime, 0)
+            decayTime = max(decayTime, 0)
+            releaseTime = max(releaseTime, 0)
+            sustainPercent = min(max(sustainPercent, 0), 100)
+
+            if let realCallback = callback {
+                realCallback(Float(attackTime / 1_000.0),
+                             Float(decayTime / 1_000.0),
+                             Float(sustainPercent / 100.0),
+                             Float(releaseTime / 1_000.0))
+            }
+            lastPoint = touchLocation
+        }
+        setNeedsDisplay()
+    }
+
+    // MARK: - Drawing
+
+    /// Draw the ADSR envelope
+    func drawCurveCanvas(size: CGSize = CGSize(width: 440, height: 151),
+                         attackDurationMS: CGFloat = 449,
+                         decayDurationMS: CGFloat = 262,
+                         releaseDurationMS: CGFloat = 448,
+                         sustainLevel: CGFloat = 0.583,
+                         maxADFraction: CGFloat = 0.75) {
         //// General Declarations
-        let context = UIGraphicsGetCurrentContext()!
-
-        //// Color Declarations
-        let attackColor = UIColor(red: 0.767, green: 0.000, blue: 0.000, alpha: 1.000)
-        let decayColor = UIColor(red: 0.942, green: 0.648, blue: 0.000, alpha: 1.000)
-        let sustainColor = UIColor(red: 0.320, green: 0.800, blue: 0.616, alpha: 1.000)
-        let releaseColor = UIColor(red: 0.720, green: 0.519, blue: 0.888, alpha: 1.000)
-        let backgroundColor = UIColor(red: 1.000, green: 1.000, blue: 1.000, alpha: 1.000)
+        let context = UIGraphicsGetCurrentContext()
 
         //// Variable Declarations
-        let oneSecond: CGFloat = 0.7 * size.width
-        let initialPoint = CGPoint(x: 0, y: size.height)
-        let curveStrokeWidth: CGFloat = min(max(1, size.height / 50.0), max(1, size.width / 100.0))
+        let attackClickRoom = CGFloat(30) // to allow the attack to be clicked even if is zero
+        let oneSecond: CGFloat = 0.65 * size.width
+        let initialPoint = CGPoint(x: attackClickRoom, y: size.height)
+        let buffer = CGFloat(10) // curveStrokeWidth / 2.0 // make a little room for drwing the stroke
         let endAxes = CGPoint(x: size.width, y: size.height)
-        let releasePoint = CGPoint(x: oneSecond, y: sustainLevel * size.height)
-        let endPoint = CGPoint(x: releasePoint.x + releaseDurationMS / 1000.0 * oneSecond, y: size.height + 0)
-        let endMax = CGPoint(x: min(endPoint.x, size.width), y: 0)
+        let releasePoint = CGPoint(x: attackClickRoom + oneSecond, y: sustainLevel * (size.height - buffer) + buffer)
+        let endPoint = CGPoint(x: releasePoint.x + releaseDurationMS / 1_000.0 * oneSecond, y: size.height)
+        let endMax = CGPoint(x: min(endPoint.x, size.width), y: buffer)
         let releaseAxis = CGPoint(x: releasePoint.x, y: endPoint.y)
-        let releaseMax = CGPoint(x: releasePoint.x, y: 0)
-        let highPoint = CGPoint(x: max(0, min(oneSecond * maxADFraction, attackDuration / 1000.0 * oneSecond)), y: 2)
+        let releaseMax = CGPoint(x: releasePoint.x, y: buffer)
+        let highPoint = CGPoint(x: attackClickRoom +
+            min(oneSecond * maxADFraction, attackDurationMS / 1_000.0 * oneSecond),
+                                y: buffer)
         let highPointAxis = CGPoint(x: highPoint.x, y: size.height)
-        let highMax = CGPoint(x: highPoint.x, y: 0)
-        let sustainPoint = CGPoint(x: max(highPoint.x, min(oneSecond * maxADFraction, (attackDuration + decayDurationMS) / 1000.0 * oneSecond)), y: sustainLevel * size.height)
+        let highMax = CGPoint(x: highPoint.x, y: buffer)
+        let minthing = min(oneSecond * maxADFraction, (attackDurationMS + decayDurationMS) / 1_000.0 * oneSecond)
+        let sustainPoint = CGPoint(x: max(highPoint.x, attackClickRoom + minthing),
+                                   y: sustainLevel * (size.height - buffer) + buffer)
         let sustainAxis = CGPoint(x: sustainPoint.x, y: size.height)
-        let initialMax = CGPoint(x: 0, y: 0)
+        let initialMax = CGPoint(x: 0, y: buffer)
+
+        let initialToHighControlPoint = CGPoint(x: initialPoint.x, y: highPoint.y)
+        let highToSustainControlPoint = CGPoint(x: highPoint.x, y: sustainPoint.y)
+        let releaseToEndControlPoint = CGPoint(x: releasePoint.x, y: endPoint.y)
 
         //// attackTouchArea Drawing
-        context.saveGState()
+        context?.saveGState()
 
-        let attackTouchAreaPath = UIBezierPath()
-        attackTouchAreaPath.move(to: CGPoint(x: initialPoint.x, y: (initialPoint.y + 1)))
-        attackTouchAreaPath.addLine(to: CGPoint(x: highPointAxis.x, y: (highPointAxis.y + 1)))
-        attackTouchAreaPath.addLine(to: CGPoint(x: highMax.x, y: (highMax.y + 1)))
-        attackTouchAreaPath.addLine(to: CGPoint(x: initialMax.x, y: (initialMax.y + 1)))
-        attackTouchAreaPath.addLine(to: CGPoint(x: initialPoint.x, y: (initialPoint.y + 1)))
+        attackTouchAreaPath = UIBezierPath()
+        attackTouchAreaPath.move(to: CGPoint(x: 0, y: size.height))
+        attackTouchAreaPath.addLine(to: highPointAxis)
+        attackTouchAreaPath.addLine(to: highMax)
+        attackTouchAreaPath.addLine(to: initialMax)
+        attackTouchAreaPath.addLine(to: CGPoint(x: 0, y: size.height))
         attackTouchAreaPath.close()
-        backgroundColor.setFill()
+        bgColor.setFill()
         attackTouchAreaPath.fill()
 
-        context.restoreGState()
-
+        context?.restoreGState()
 
         //// decaySustainTouchArea Drawing
-        context.saveGState()
-        context.translateBy(x: 0, y: -1)
+        context?.saveGState()
 
-        let decaySustainTouchAreaPath = UIBezierPath()
+        decaySustainTouchAreaPath = UIBezierPath()
         decaySustainTouchAreaPath.move(to: highPointAxis)
         decaySustainTouchAreaPath.addLine(to: releaseAxis)
         decaySustainTouchAreaPath.addLine(to: releaseMax)
         decaySustainTouchAreaPath.addLine(to: highMax)
         decaySustainTouchAreaPath.addLine(to: highPointAxis)
         decaySustainTouchAreaPath.close()
-        backgroundColor.setFill()
+        bgColor.setFill()
         decaySustainTouchAreaPath.fill()
 
-        context.restoreGState()
-
+        context?.restoreGState()
 
         //// releaseTouchArea Drawing
-        context.saveGState()
+        context?.saveGState()
 
-        let releaseTouchAreaPath = UIBezierPath()
+        releaseTouchAreaPath = UIBezierPath()
         releaseTouchAreaPath.move(to: releaseAxis)
         releaseTouchAreaPath.addLine(to: endAxes)
         releaseTouchAreaPath.addLine(to: endMax)
         releaseTouchAreaPath.addLine(to: releaseMax)
         releaseTouchAreaPath.addLine(to: releaseAxis)
         releaseTouchAreaPath.close()
-        backgroundColor.setFill()
+        bgColor.setFill()
         releaseTouchAreaPath.fill()
 
-        context.restoreGState()
-
+        context?.restoreGState()
 
         //// releaseArea Drawing
-        context.saveGState()
-        context.translateBy(x: 0, y: -1)
+        context?.saveGState()
 
         let releaseAreaPath = UIBezierPath()
         releaseAreaPath.move(to: releaseAxis)
-        releaseAreaPath.addCurve(to: endPoint, controlPoint1: releaseAxis, controlPoint2: CGPoint(x: endPoint.x + 35.03, y: endPoint.y))
-        releaseAreaPath.addCurve(to: releasePoint, controlPoint1: CGPoint(x: endPoint.x - 140.14, y: endPoint.y), controlPoint2: releasePoint)
+        releaseAreaPath.addCurve(to: endPoint,
+                                 controlPoint1: releaseAxis,
+                                 controlPoint2: endPoint)
+        releaseAreaPath.addCurve(to: releasePoint,
+                                 controlPoint1: releaseToEndControlPoint,
+                                 controlPoint2: releasePoint)
         releaseAreaPath.addLine(to: releaseAxis)
         releaseAreaPath.close()
         releaseColor.setFill()
         releaseAreaPath.fill()
 
-        context.restoreGState()
-
+        context?.restoreGState()
 
         //// sustainArea Drawing
-        context.saveGState()
-        context.translateBy(x: 0, y: -1)
+        context?.saveGState()
 
         let sustainAreaPath = UIBezierPath()
         sustainAreaPath.move(to: sustainAxis)
@@ -134,60 +301,70 @@ class ADSRView: UIView {
         sustainColor.setFill()
         sustainAreaPath.fill()
 
-        context.restoreGState()
-
+        context?.restoreGState()
 
         //// decayArea Drawing
-        context.saveGState()
-        context.translateBy(x: 56, y: 1)
+        context?.saveGState()
 
         let decayAreaPath = UIBezierPath()
-        decayAreaPath.move(to: CGPoint(x: (highPointAxis.x - 56), y: (highPointAxis.y - 2)))
-        decayAreaPath.addLine(to: CGPoint(x: (sustainAxis.x - 56), y: (sustainAxis.y - 2)))
-        decayAreaPath.addCurve(to: CGPoint(x: (sustainPoint.x - 56), y: (sustainPoint.y - 2)), controlPoint1: CGPoint(x: (sustainAxis.x - 56), y: (sustainAxis.y - 2)), controlPoint2: CGPoint(x: (sustainPoint.x - 56) + 0.16, y: (sustainPoint.y - 2) + 0.1))
-        decayAreaPath.addCurve(to: CGPoint(x: (highPoint.x - 56), y: (highPoint.y - 2)), controlPoint1: CGPoint(x: (sustainPoint.x - 56) - 91, y: (sustainPoint.y - 2) + 0.2), controlPoint2: CGPoint(x: (highPoint.x - 56), y: (highPoint.y - 2)))
-        decayAreaPath.addLine(to: CGPoint(x: (highPointAxis.x - 56), y: (highPointAxis.y - 2)))
+        decayAreaPath.move(to: highPointAxis)
+        decayAreaPath.addLine(to: sustainAxis)
+        decayAreaPath.addCurve(to: sustainPoint,
+                               controlPoint1: sustainAxis,
+                               controlPoint2: sustainPoint)
+        decayAreaPath.addCurve(to: highPoint,
+                               controlPoint1: highToSustainControlPoint,
+                               controlPoint2: highPoint)
+        decayAreaPath.addLine(to: highPoint)
         decayAreaPath.close()
         decayColor.setFill()
         decayAreaPath.fill()
 
-        context.restoreGState()
-
+        context?.restoreGState()
 
         //// attackArea Drawing
-        context.saveGState()
-        context.translateBy(x: 0, y: -1)
+        context?.saveGState()
 
         let attackAreaPath = UIBezierPath()
-        attackAreaPath.move(to: CGPoint(x: initialPoint.x, y: (initialPoint.y + 1)))
-        attackAreaPath.addLine(to: CGPoint(x: highPointAxis.x, y: (highPointAxis.y + 1)))
-        attackAreaPath.addLine(to: CGPoint(x: highPoint.x, y: (highPoint.y + 1)))
-        attackAreaPath.addCurve(to: CGPoint(x: initialPoint.x, y: (initialPoint.y + 1)), controlPoint1: CGPoint(x: highPoint.x - 139.45, y: (highPoint.y + 1)), controlPoint2: CGPoint(x: initialPoint.x, y: (initialPoint.y + 1)))
+        attackAreaPath.move(to: initialPoint)
+        attackAreaPath.addLine(to: highPointAxis)
+        attackAreaPath.addLine(to: highPoint)
+        attackAreaPath.addCurve(to: initialPoint,
+                                controlPoint1: initialToHighControlPoint,
+                                controlPoint2: initialPoint)
         attackAreaPath.close()
         attackColor.setFill()
         attackAreaPath.fill()
 
-        context.restoreGState()
+        context?.restoreGState()
 
         //// Curve Drawing
-        context.saveGState()
-        context.translateBy(x: 0, y: -1)
+        context?.saveGState()
 
         let curvePath = UIBezierPath()
-        curvePath.move(to: initialPoint)    // first point on curve
-        let controlPoint2 = CGPoint(x: initialPoint.x, y: highPoint.y)
-        print(controlPoint2)
-
-        curvePath.addCurve(to: highPoint, controlPoint1: initialPoint, controlPoint2: controlPoint2)
-        curvePath.addCurve(to: sustainPoint, controlPoint1: highPoint, controlPoint2: CGPoint(x: sustainPoint.x - 90, y: sustainPoint.y + 0.2))
+        curvePath.move(to: initialPoint)
+        curvePath.addCurve(to: highPoint,
+                           controlPoint1: initialPoint,
+                           controlPoint2: initialToHighControlPoint)
+        curvePath.addCurve(to: sustainPoint,
+                           controlPoint1: highPoint,
+                           controlPoint2: highToSustainControlPoint)
         curvePath.addLine(to: releasePoint)
-        curvePath.addCurve(to: endPoint, controlPoint1: releasePoint, controlPoint2: CGPoint(x: endPoint.x - 139.14, y: endPoint.y))
-        UIColor.black.setStroke()
+        curvePath.addCurve(to: endPoint,
+                           controlPoint1: releasePoint,
+                           controlPoint2: releaseToEndControlPoint)
+        curveColor.setStroke()
         curvePath.lineWidth = curveStrokeWidth
         curvePath.stroke()
 
-        context.restoreGState()
+        context?.restoreGState()
     }
 
-
+    /// Draw the view
+    override public func draw(_ rect: CGRect) {
+        drawCurveCanvas(size: rect.size, attackDurationMS: attackTime,
+                        decayDurationMS: decayTime,
+                        releaseDurationMS: releaseTime,
+                        sustainLevel: 1.0 - sustainPercent / 100.0)
+    }
 }
