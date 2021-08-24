@@ -9,10 +9,10 @@ import UIKit
 
 class ADSRView: UIView {
 
-    var attackDuration: CGFloat = 408
-    var decayDuration: CGFloat = 262
-    var sustainLevel: CGFloat = 0.5
-    var releaseDuration: CGFloat = 448
+    var attackDuration: CGFloat = 408 { didSet { setNeedsDisplay() } }
+    var decayDuration: CGFloat = 262 { didSet { setNeedsDisplay() } }
+    var sustainLevel: CGFloat = 0.5 { didSet { setNeedsDisplay() } }
+    var releaseDuration: CGFloat = 448 { didSet { setNeedsDisplay() } }
 
     override func draw(_ rect: CGRect) {
         super.draw(rect)

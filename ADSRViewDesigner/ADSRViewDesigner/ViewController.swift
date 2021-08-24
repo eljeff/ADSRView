@@ -40,11 +40,39 @@ class ViewController: UIViewController {
         slider2 = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
         slider3 = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
         slider4 = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
+        slider1.minimumValue = 0
+        slider1.maximumValue = Float(adsrView.attackDuration * 2)
+        slider2.maximumValue = Float(adsrView.decayDuration * 2)
+        slider3.maximumValue = Float(1)
+        slider4.maximumValue = Float(adsrView.releaseDuration * 2)
+        slider1.value = Float(adsrView.attackDuration)
+        slider2.value = Float(adsrView.decayDuration)
+        slider3.value = Float(adsrView.sustainLevel)
+        slider4.value = Float(adsrView.releaseDuration)
         sliderView.addSubview(slider1)
         sliderView.addSubview(slider2)
         sliderView.addSubview(slider3)
         sliderView.addSubview(slider4)
+        slider1.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
+        slider2.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
+        slider3.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
+        slider4.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
         view.addSubview(sliderView)
+    }
+
+    @objc private func sliderValueDidChange(_ sender: UISlider) {
+        if sender == slider1 {
+            adsrView.attackDuration = CGFloat(sender.value)
+        }
+        if sender == slider2 {
+            adsrView.decayDuration = CGFloat(sender.value)
+        }
+        if sender == slider3 {
+            adsrView.sustainLevel = CGFloat(sender.value)
+        }
+        if sender == slider4 {
+            adsrView.releaseDuration = CGFloat(sender.value)
+        }
     }
 
     private func setupSliders(frame: CGRect) {
