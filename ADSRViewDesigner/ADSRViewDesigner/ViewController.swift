@@ -25,8 +25,13 @@ class ViewController: UIViewController {
     private func addADSR(frame: CGRect) {
         adsrView = ADSRView()
         view.addSubview(adsrView)
-        adsrView.callback = {attack, decay, sustain, release in
-            print("attack \(attack) decay \(decay) sustain \(sustain) release \(release)")
+        adsrView.callback = {[weak self] attack, decay, sustain, release in
+            DispatchQueue.main.async { [weak self] in
+                self?.slider1.setValue(attack, animated: true)
+                self?.slider2.setValue(decay, animated: true)
+                self?.slider3.setValue(sustain, animated: true)
+                self?.slider4.setValue(release, animated: true)
+            }
         }
     }
 
@@ -41,11 +46,11 @@ class ViewController: UIViewController {
         slider2 = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
         slider3 = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
         slider4 = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
-        slider1.minimumValue = 0
-        slider3.maximumValue = Float(1)
-        slider4.maximumValue = Float(adsrView.releaseDuration * 2)
+
+        slider1.value = Float(adsrView.attackAmount)
+        slider2.value = Float(adsrView.decayAmount)
         slider3.value = Float(adsrView.sustainLevel)
-        slider4.value = Float(adsrView.releaseDuration)
+        slider4.value = Float(adsrView.releaseAmount)
         sliderView.addSubview(slider1)
         sliderView.addSubview(slider2)
         sliderView.addSubview(slider3)
@@ -68,7 +73,7 @@ class ViewController: UIViewController {
             adsrView.sustainLevel = sender.value
         }
         if sender == slider4 {
-            adsrView.releaseDuration = sender.value
+            adsrView.releaseAmount = sender.value
         }
     }
 

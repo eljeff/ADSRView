@@ -13,37 +13,22 @@ import UIKit
     public typealias ADSRCallback = (Float, Float, Float, Float) -> Void
 
     /// Attack amount, Default: 0.5
-    open var attackAmount: Float = 0.5 { didSet { setNeedsDisplay() }}
+    open var attackAmount: Float = 0.5 { didSet { setNeedsDisplay() } }
 
     /// Decay amount, Default: 0.5
-    open var decayAmount: Float = 0.5 { didSet { setNeedsDisplay() }}
+    open var decayAmount: Float = 0.5 { didSet { setNeedsDisplay() } }
 
     /// Sustain Level (0-1), Default: 0.5
-    open var sustainLevel: Float = 0.5
+    open var sustainLevel: Float = 0.5 { didSet { setNeedsDisplay() } }
 
-    /// Release duration in seconds, Default: 0.1
-    open var releaseDuration: Float = 0.100
+    /// Release amount, Default: 0.5
+    open var releaseAmount: Float = 0.5 { didSet { setNeedsDisplay() } }
 
-    /// How much to slow the sustain drag - higher is slower, Default: 2
-    open var sustainDragSlew: Float = 2
+    /// How much to slow the  drag - higher is slower, Default: 0.01
+    open var dragSlew: Float = 0.01
 
     open var attackPaddingPercent: CGFloat = 0.01
-    private var maxAttackPixels: CGFloat {
-        return (frame.width * (1.0 - attackPaddingPercent)) / 4
-    }
-    private var minSustainPercentage: CGFloat = 0.1
-
-    /// Sustain level as a percentage 0% - 100%
-    var sustainPercent: CGFloat {
-        get { return CGFloat(sustainLevel * 100.0) }
-        set { sustainLevel = Float(newValue / 100.0) }
-    }
-
-    /// Release duration in milliseconds
-    var releaseTime: CGFloat {
-        get { return CGFloat(releaseDuration * 1_000.0) }
-        set { releaseDuration = Float(newValue / 1_000.0) }
-    }
+    open var releasePaddingPercent: CGFloat = 0.01
 
     private var decaySustainTouchAreaPath = UIBezierPath()
     private var attackTouchAreaPath = UIBezierPath()
@@ -56,27 +41,27 @@ import UIKit
     //// Color Declarations
 
     /// Color in the attack portion of the UI element
-    @IBInspectable open var attackColor: UIColor = #colorLiteral(red: 0.767, green: 0.000, blue: 0.000, alpha: 1.000)
+    @IBInspectable open var attackColor: UIColor = #colorLiteral(red: 0.2588235438, green: 0.7568627596, blue: 0.9686274529, alpha: 1)
 
     /// Color in the decay portion of the UI element
-    @IBInspectable open var decayColor: UIColor = #colorLiteral(red: 0.942, green: 0.648, blue: 0.000, alpha: 1.000)
+    @IBInspectable open var decayColor: UIColor = #colorLiteral(red: 0.1764705926, green: 0.4980392158, blue: 0.7568627596, alpha: 1)
 
     /// Color in the sustain portion of the UI element
-    @IBInspectable open var sustainColor: UIColor = #colorLiteral(red: 0.320, green: 0.800, blue: 0.616, alpha: 1.000)
+    @IBInspectable open var sustainColor: UIColor = #colorLiteral(red: 0.05882352963, green: 0.180392161, blue: 0.2470588237, alpha: 1)
 
     /// Color in the release portion of the UI element
-    @IBInspectable open var releaseColor: UIColor = #colorLiteral(red: 0.720, green: 0.519, blue: 0.888, alpha: 1.000)
+    @IBInspectable open var releaseColor: UIColor = #colorLiteral(red: 0.4745098054, green: 0.8392156959, blue: 0.9764705896, alpha: 1)
 
     /// Background color
     @IBInspectable open var bgColor: UIColor = UIColor.clear
 
     /// Width of the envelope curve
-    @IBInspectable open var curveStrokeWidth: CGFloat = 1
+    @IBInspectable open var curveStrokeWidth: CGFloat = 2
 
     /// Color of the envelope curve
     @IBInspectable open var curveColor: UIColor = .black
 
-    var lastPoint = CGPoint.zero
+    private var lastPoint = CGPoint.zero
 
     // MARK: - Initialization
 
@@ -84,7 +69,7 @@ import UIKit
     public init(callback: ADSRCallback? = nil) {
         self.callback = callback
         super.init(frame: CGRect(x: 0, y: 0, width: 440, height: 150))
-        backgroundColor = .clear
+        backgroundColor = bgColor
     }
 
     /// Initialization of the view from within interface builder
@@ -97,7 +82,6 @@ import UIKit
     /// Perform necessary operation to allow the view to be rendered in interface builder
     override public func prepareForInterfaceBuilder() {
         super.prepareForInterfaceBuilder()
-
         contentMode = .scaleAspectFill
         clipsToBounds = true
     }
@@ -140,33 +124,28 @@ import UIKit
 
             if currentDragArea != "" {
                 if currentDragArea == "ds" {
-                    sustainPercent -= (touchLocation.y - lastPoint.y) / CGFloat(sustainDragSlew)
-//                    decayTime += touchLocation.x - lastPoint.x
+                    sustainLevel -= Float(touchLocation.y - lastPoint.y) * dragSlew
+                    decayAmount += Float(touchLocation.x - lastPoint.x) * dragSlew
                 }
                 if currentDragArea == "a" {
-//                    attackTime += touchLocation.x - lastPoint.x
-//                    attackTime -= touchLocation.y - lastPoint.y
-                    attackAmount += Float(touchLocation.x - lastPoint.x) * 0.1
-                    attackAmount -= Float(touchLocation.y - lastPoint.y) * 0.1
-                    print("x \(touchLocation.x - lastPoint.x)")
-                    print("y \(touchLocation.y - lastPoint.y)")
+                    attackAmount += Float(touchLocation.x - lastPoint.x) * dragSlew
+                    attackAmount -= Float(touchLocation.y - lastPoint.y) * dragSlew
                 }
                 if currentDragArea == "r" {
-                    releaseTime += touchLocation.x - lastPoint.x
-                    releaseTime -= touchLocation.y - lastPoint.y
+                    releaseAmount += Float(touchLocation.x - lastPoint.x) * dragSlew
+                    releaseAmount -= Float(touchLocation.y - lastPoint.y) * dragSlew
                 }
             }
-            print("frame \(frame) maxAttack \(maxAttackPixels)")
-//            attackTime = min(max(attackTime, 0), maxAttackPixels)
-//            decayTime = max(decayTime, 0)
-            releaseTime = max(releaseTime, 0)
-            sustainPercent = min(max(sustainPercent, 0), 100)
+            attackAmount = max(min(attackAmount, 1), 0)
+            decayAmount = max(min(decayAmount, 1), 0)
+            sustainLevel = min(max(sustainLevel, 0), 1)
+            releaseAmount = max(min(releaseAmount, 1), 0)
 
             if let callback = callback {
                 callback(Float(attackAmount),
                          Float(decayAmount),
-                         Float(sustainPercent / 100.0),
-                         Float(releaseTime / 1_000.0))
+                         Float(sustainLevel),
+                         Float(releaseAmount))
             }
             lastPoint = touchLocation
         }
@@ -181,25 +160,28 @@ import UIKit
                          attackPercentage: CGFloat = 0.5,       // normalised
                          decayPercentage: CGFloat = 0.5,
                          sustainLevel: CGFloat = 0.583,
-                         releaseDurationMS: CGFloat = 448,
-                         maxADFraction: CGFloat = 0.75) {
+                         releasePercentage: CGFloat = 0.5,
+                         releasePadPercentage: CGFloat = 0.1)    // how much % width of the view should pad release)
+    {
         //// General Declarations
         let context = UIGraphicsGetCurrentContext()
 
         //// Variable Declarations
         let attackClickRoom = CGFloat(attackPadPercentage * size.width) // to allow attack to be clicked even if zero
-        let sectionMax = (size.width * (1.0 - attackPadPercentage)) / 4
-        let oneSecond: CGFloat = 0.65 * size.width
+        let releaseClickRoom = CGFloat(releasePadPercentage * size.width) // to allow attack to be clicked even if zero
+        let endPointMax = size.width - releaseClickRoom
+        let sectionMax = (size.width * (1.0 - attackPadPercentage - releasePadPercentage)) / 3.3
+        let attackSize = attackPercentage * sectionMax
+        let decaySize = decayPercentage * sectionMax
+        let releaseSize = releasePercentage * sectionMax
         let initialPoint = CGPoint(x: attackClickRoom, y: size.height)
         let buffer = CGFloat(10) // curveStrokeWidth / 2.0 // make a little room for drwing the stroke
         let endAxes = CGPoint(x: size.width, y: size.height)
-        let releasePoint = CGPoint(x: attackClickRoom + oneSecond, y: sustainLevel * (size.height - buffer) + buffer)
-        let endPoint = CGPoint(x: releasePoint.x + releaseDurationMS / 1_000.0 * oneSecond, y: size.height)
-        let endMax = CGPoint(x: min(endPoint.x, size.width), y: buffer)
+        let releasePoint = CGPoint(x: endPointMax - (sectionMax), y: sustainLevel * (size.height - buffer) + buffer)
+        let endPoint = CGPoint(x: min(endPointMax, (releasePoint.x + releaseSize)), y: size.height)
+        let endMax = CGPoint(x: min(endPoint.x, endPointMax), y: buffer)
         let releaseAxis = CGPoint(x: releasePoint.x, y: endPoint.y)
         let releaseMax = CGPoint(x: releasePoint.x, y: buffer)
-        let attackSize = (attackPercentage * sectionMax)
-        let decaySize = (decayPercentage * sectionMax)
         let highPoint = CGPoint(x: attackClickRoom + attackSize, y: buffer)
         let highPointAxis = CGPoint(x: highPoint.x, y: size.height)
         let highMax = CGPoint(x: highPoint.x, y: buffer)
@@ -353,7 +335,7 @@ import UIKit
                         attackPadPercentage: attackPaddingPercent,
                         attackPercentage: CGFloat(attackAmount),
                         decayPercentage: CGFloat(decayAmount),
-                        sustainLevel: 1.0 - sustainPercent / 100.0,
-                        releaseDurationMS: releaseTime)
+                        sustainLevel: 1.0 - CGFloat(sustainLevel),
+                        releasePercentage: CGFloat(releaseAmount), releasePadPercentage: releasePaddingPercent)
     }
 }
