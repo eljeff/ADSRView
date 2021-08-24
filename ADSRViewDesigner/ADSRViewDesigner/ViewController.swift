@@ -18,11 +18,11 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        addADSR(frame: view.frame)
+        addADSRView(frame: view.frame)
         addSliderView(frame: view.frame, yOffset: adsrView.frame.height)
     }
 
-    private func addADSR(frame: CGRect) {
+    private func addADSRView(frame: CGRect) {
         adsrView = ADSRView()
         view.addSubview(adsrView)
         adsrView.callback = {[weak self] attack, decay, sustain, release in
@@ -51,14 +51,14 @@ class ViewController: UIViewController {
         slider2.value = Float(adsrView.decayAmount)
         slider3.value = Float(adsrView.sustainLevel)
         slider4.value = Float(adsrView.releaseAmount)
-        sliderView.addSubview(slider1)
-        sliderView.addSubview(slider2)
-        sliderView.addSubview(slider3)
-        sliderView.addSubview(slider4)
         slider1.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
         slider2.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
         slider3.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
         slider4.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
+        sliderView.addSubview(slider1)
+        sliderView.addSubview(slider2)
+        sliderView.addSubview(slider3)
+        sliderView.addSubview(slider4)
         view.addSubview(sliderView)
     }
 
@@ -78,13 +78,13 @@ class ViewController: UIViewController {
     }
 
     private func setupSliders(frame: CGRect) {
-        constrainObjectByDivision(target: slider1, source: sliderView, divisions: 2, xStep: 0, yStep: 0,
+        slider1.constrainByDivision(source: sliderView, divisions: 2, xStep: 0, yStep: 0,
                                   xSqueezing: 0.9)
-        constrainObjectByDivision(target: slider2, source: sliderView, divisions: 2, xStep: 0, yStep: 1,
+        slider2.constrainByDivision(source: sliderView, divisions: 2, xStep: 0, yStep: 1,
                                   xSqueezing: 0.9)
-        constrainObjectByDivision(target: slider3, source: sliderView, divisions: 2, xStep: 1, yStep: 0,
+        slider3.constrainByDivision(source: sliderView, divisions: 2, xStep: 1, yStep: 0,
                                   xSqueezing: 0.9)
-        constrainObjectByDivision(target: slider4, source: sliderView, divisions: 2, xStep: 1, yStep: 1,
+        slider4.constrainByDivision(source: sliderView, divisions: 2, xStep: 1, yStep: 1,
                                   xSqueezing: 0.9)
     }
 
@@ -94,13 +94,16 @@ class ViewController: UIViewController {
         sliderView.frame = CGRect(x: 0, y: view.frame.height, width: view.frame.width, height: 1.0 - adsrHeight)
         setupSliders(frame: sliderView.bounds)
     }
+}
+
+public extension UIView {
 
     // divisions = how may equal-sized chunks to divide into
     // -Step = how many divsions - to offset (0 is first)
     // -Squeezing = percent of actual division size to use (adds padding)
-    private func constrainObjectByDivision(target: UIView, source: UIView, divisions: CGFloat,
-                                           xStep: CGFloat, yStep: CGFloat,
-                                           xSqueezing: CGFloat = 1.0, ySqueezing: CGFloat = 1.0) {
+    func constrainByDivision(source: UIView, divisions: CGFloat,
+                             xStep: CGFloat, yStep: CGFloat,
+                             xSqueezing: CGFloat = 1.0, ySqueezing: CGFloat = 1.0) {
         let divisor = 1 / divisions
         let totalCenter: CGFloat = 2    //how much center multipliers to work w (always 2 - left / right of center)
         let centerWidth = totalCenter / divisions
@@ -110,24 +113,23 @@ class ViewController: UIViewController {
         let yOffset = centerYOffset + divisor
         let widthMultiplier = divisor * xSqueezing
         let heightMultiplier  = divisor * ySqueezing
-        target.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint(item: target, attribute: NSLayoutConstraint.Attribute.centerX,
+        self.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint(item: self, attribute: NSLayoutConstraint.Attribute.centerX,
                            relatedBy: NSLayoutConstraint.Relation.equal, toItem: source,
                            attribute: NSLayoutConstraint.Attribute.centerX,
                            multiplier: xOffset, constant: 0).isActive = true
-        NSLayoutConstraint(item: target, attribute: NSLayoutConstraint.Attribute.centerY,
+        NSLayoutConstraint(item: self, attribute: NSLayoutConstraint.Attribute.centerY,
                            relatedBy: NSLayoutConstraint.Relation.equal, toItem: source,
                            attribute: NSLayoutConstraint.Attribute.centerY,
                            multiplier: yOffset, constant: 0).isActive = true
-        NSLayoutConstraint(item: target, attribute: NSLayoutConstraint.Attribute.width,
+        NSLayoutConstraint(item: self, attribute: NSLayoutConstraint.Attribute.width,
                            relatedBy: NSLayoutConstraint.Relation.equal, toItem: source,
                            attribute: NSLayoutConstraint.Attribute.width,
                            multiplier: widthMultiplier, constant: 0).isActive = true
-        NSLayoutConstraint(item: target, attribute: NSLayoutConstraint.Attribute.height,
+        NSLayoutConstraint(item: self, attribute: NSLayoutConstraint.Attribute.height,
                            relatedBy: NSLayoutConstraint.Relation.equal, toItem: source,
                            attribute: NSLayoutConstraint.Attribute.height,
                            multiplier: heightMultiplier, constant: 0).isActive = true
     }
-
 }
 
