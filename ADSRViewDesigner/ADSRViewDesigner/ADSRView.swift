@@ -12,14 +12,14 @@ import UIKit
     /// Type of function to call when values of the ADSR have changed
     public typealias ADSRCallback = (Float, Float, Float, Float) -> Void
 
-    /// Attack duration in seconds, Default: 0.1
-    open var attackDuration: Float = 0.100
+    /// Attack amount, Default: 0.5
+    open var attackAmount: Float = 0.5 { didSet { setNeedsDisplay() }}
 
-    /// Decay duration in seconds, Default: 0.1
-    open var decayDuration: Float = 0.100
+    /// Decay amount, Default: 0.5
+    open var decayAmount: Float = 0.5 { didSet { setNeedsDisplay() }}
 
     /// Sustain Level (0-1), Default: 0.5
-    open var sustainLevel: Float = 1.0
+    open var sustainLevel: Float = 0.5
 
     /// Release duration in seconds, Default: 0.1
     open var releaseDuration: Float = 0.100
@@ -27,44 +27,22 @@ import UIKit
     /// How much to slow the sustain drag - higher is slower, Default: 2
     open var sustainDragSlew: Float = 2
 
-    /// Attack duration in milliseconds
-    var attackTime: CGFloat {
-        get {
-            return CGFloat(attackDuration * 1_000.0)
-        }
-        set {
-            attackDuration = Float(newValue / 1_000.0)
-        }
+    open var attackPaddingPercent: CGFloat = 0.01
+    private var maxAttackPixels: CGFloat {
+        return (frame.width * (1.0 - attackPaddingPercent)) / 4
     }
-
-    /// Decay duration in milliseconds
-    var decayTime: CGFloat {
-        get {
-            return CGFloat(decayDuration * 1_000.0)
-        }
-        set {
-            decayDuration = Float(newValue / 1_000.0)
-        }
-    }
+    private var minSustainPercentage: CGFloat = 0.1
 
     /// Sustain level as a percentage 0% - 100%
     var sustainPercent: CGFloat {
-        get {
-            return CGFloat(sustainLevel * 100.0)
-        }
-        set {
-            sustainLevel = Float(newValue / 100.0)
-        }
+        get { return CGFloat(sustainLevel * 100.0) }
+        set { sustainLevel = Float(newValue / 100.0) }
     }
 
     /// Release duration in milliseconds
     var releaseTime: CGFloat {
-        get {
-            return CGFloat(releaseDuration * 1_000.0)
-        }
-        set {
-            releaseDuration = Float(newValue / 1_000.0)
-        }
+        get { return CGFloat(releaseDuration * 1_000.0) }
+        set { releaseDuration = Float(newValue / 1_000.0) }
     }
 
     private var decaySustainTouchAreaPath = UIBezierPath()
@@ -90,7 +68,7 @@ import UIKit
     @IBInspectable open var releaseColor: UIColor = #colorLiteral(red: 0.720, green: 0.519, blue: 0.888, alpha: 1.000)
 
     /// Background color
-    @IBInspectable open var bgColor: UIColor = #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1)
+    @IBInspectable open var bgColor: UIColor = UIColor.clear
 
     /// Width of the envelope curve
     @IBInspectable open var curveStrokeWidth: CGFloat = 1
@@ -163,27 +141,32 @@ import UIKit
             if currentDragArea != "" {
                 if currentDragArea == "ds" {
                     sustainPercent -= (touchLocation.y - lastPoint.y) / CGFloat(sustainDragSlew)
-                    decayTime += touchLocation.x - lastPoint.x
+//                    decayTime += touchLocation.x - lastPoint.x
                 }
                 if currentDragArea == "a" {
-                    attackTime += touchLocation.x - lastPoint.x
-                    attackTime -= touchLocation.y - lastPoint.y
+//                    attackTime += touchLocation.x - lastPoint.x
+//                    attackTime -= touchLocation.y - lastPoint.y
+                    attackAmount += Float(touchLocation.x - lastPoint.x) * 0.1
+                    attackAmount -= Float(touchLocation.y - lastPoint.y) * 0.1
+                    print("x \(touchLocation.x - lastPoint.x)")
+                    print("y \(touchLocation.y - lastPoint.y)")
                 }
                 if currentDragArea == "r" {
                     releaseTime += touchLocation.x - lastPoint.x
                     releaseTime -= touchLocation.y - lastPoint.y
                 }
             }
-            attackTime = max(attackTime, 0)
-            decayTime = max(decayTime, 0)
+            print("frame \(frame) maxAttack \(maxAttackPixels)")
+//            attackTime = min(max(attackTime, 0), maxAttackPixels)
+//            decayTime = max(decayTime, 0)
             releaseTime = max(releaseTime, 0)
             sustainPercent = min(max(sustainPercent, 0), 100)
 
-            if let realCallback = callback {
-                realCallback(Float(attackTime / 1_000.0),
-                             Float(decayTime / 1_000.0),
-                             Float(sustainPercent / 100.0),
-                             Float(releaseTime / 1_000.0))
+            if let callback = callback {
+                callback(Float(attackAmount),
+                         Float(decayAmount),
+                         Float(sustainPercent / 100.0),
+                         Float(releaseTime / 1_000.0))
             }
             lastPoint = touchLocation
         }
@@ -194,16 +177,18 @@ import UIKit
 
     /// Draw the ADSR envelope
     func drawCurveCanvas(size: CGSize = CGSize(width: 440, height: 151),
-                         attackDurationMS: CGFloat = 449,
-                         decayDurationMS: CGFloat = 262,
-                         releaseDurationMS: CGFloat = 448,
+                         attackPadPercentage: CGFloat = 0.1,    // how much % width of the view should pad attack
+                         attackPercentage: CGFloat = 0.5,       // normalised
+                         decayPercentage: CGFloat = 0.5,
                          sustainLevel: CGFloat = 0.583,
+                         releaseDurationMS: CGFloat = 448,
                          maxADFraction: CGFloat = 0.75) {
         //// General Declarations
         let context = UIGraphicsGetCurrentContext()
 
         //// Variable Declarations
-        let attackClickRoom = CGFloat(30) // to allow the attack to be clicked even if is zero
+        let attackClickRoom = CGFloat(attackPadPercentage * size.width) // to allow attack to be clicked even if zero
+        let sectionMax = (size.width * (1.0 - attackPadPercentage)) / 4
         let oneSecond: CGFloat = 0.65 * size.width
         let initialPoint = CGPoint(x: attackClickRoom, y: size.height)
         let buffer = CGFloat(10) // curveStrokeWidth / 2.0 // make a little room for drwing the stroke
@@ -213,13 +198,12 @@ import UIKit
         let endMax = CGPoint(x: min(endPoint.x, size.width), y: buffer)
         let releaseAxis = CGPoint(x: releasePoint.x, y: endPoint.y)
         let releaseMax = CGPoint(x: releasePoint.x, y: buffer)
-        let highPoint = CGPoint(x: attackClickRoom +
-            min(oneSecond * maxADFraction, attackDurationMS / 1_000.0 * oneSecond),
-                                y: buffer)
+        let attackSize = (attackPercentage * sectionMax)
+        let decaySize = (decayPercentage * sectionMax)
+        let highPoint = CGPoint(x: attackClickRoom + attackSize, y: buffer)
         let highPointAxis = CGPoint(x: highPoint.x, y: size.height)
         let highMax = CGPoint(x: highPoint.x, y: buffer)
-        let minthing = min(oneSecond * maxADFraction, (attackDurationMS + decayDurationMS) / 1_000.0 * oneSecond)
-        let sustainPoint = CGPoint(x: max(highPoint.x, attackClickRoom + minthing),
+        let sustainPoint = CGPoint(x: max(highPoint.x, attackClickRoom + attackSize + decaySize),
                                    y: sustainLevel * (size.height - buffer) + buffer)
         let sustainAxis = CGPoint(x: sustainPoint.x, y: size.height)
         let initialMax = CGPoint(x: 0, y: buffer)
@@ -365,9 +349,11 @@ import UIKit
 
     /// Draw the view
     override public func draw(_ rect: CGRect) {
-        drawCurveCanvas(size: rect.size, attackDurationMS: attackTime,
-                        decayDurationMS: decayTime,
-                        releaseDurationMS: releaseTime,
-                        sustainLevel: 1.0 - sustainPercent / 100.0)
+        drawCurveCanvas(size: rect.size,
+                        attackPadPercentage: attackPaddingPercent,
+                        attackPercentage: CGFloat(attackAmount),
+                        decayPercentage: CGFloat(decayAmount),
+                        sustainLevel: 1.0 - sustainPercent / 100.0,
+                        releaseDurationMS: releaseTime)
     }
 }
