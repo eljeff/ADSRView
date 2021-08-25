@@ -419,46 +419,70 @@ import UIKit
 }
 
 extension CGContext {
-  func drawLinearGradient(
-    in path: CGPath,
-    startingWith startColor: CGColor,
-    finishingWith endColor: CGColor,
-    horizontal: Bool = true
-  ) {
-    // 1
-    let colorSpace = CGColorSpaceCreateDeviceRGB()
 
-    // 2
-    let locations = [0.0, 1.0] as [CGFloat]
-
-    // 3
-    let colors = [startColor, endColor] as CFArray
-
-    // 4
-    guard let gradient = CGGradient(
-      colorsSpace: colorSpace,
-      colors: colors,
-      locations: locations
-    ) else {
-      return
+    private func generateGradient( startColor: CGColor,
+                                   endColor: CGColor) -> CGGradient? {
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let locations = [0.0, 1.0] as [CGFloat]
+        let colors = [startColor, endColor] as CFArray
+        return CGGradient( colorsSpace: colorSpace, colors: colors, locations: locations)
     }
-    let rect = path.boundingBox
-    let startPoint = CGPoint(x: horizontal ? rect.minX : rect.midX, y: horizontal ? rect.midY : rect.minY)
-    let endPoint = CGPoint(x: horizontal ? rect.maxX : rect.midX, y: horizontal ?  rect.midY : rect.maxY)
 
-    // 6
-    saveGState()
+    private func getStartAndEndPoint(rect: CGRect, horizontal: Bool = true) -> (CGPoint, CGPoint) {
+        let startPoint = CGPoint(x: horizontal ? rect.minX : rect.midX, y: horizontal ? rect.midY : rect.minY)
+        let endPoint = CGPoint(x: horizontal ? rect.maxX : rect.midX, y: horizontal ?  rect.midY : rect.maxY)
+        return (startPoint, endPoint)
+    }
 
-    // 7
-    addPath(path)
-    clip()
-    drawLinearGradient(
-      gradient,
-      start: startPoint,
-      end: endPoint,
-      options: CGGradientDrawingOptions()
-    )
+    private func clipAndDrawGradient(gradient: CGGradient, startPoint: CGPoint, endPoint: CGPoint) {
+        clip()
+        drawLinearGradient(
+            gradient,
+            start: startPoint,
+            end: endPoint,
+            options: CGGradientDrawingOptions()
+        )
+    }
 
-    restoreGState()
+    func drawLinearGradient(
+        in path: CGPath,
+        startingWith startColor: CGColor,
+        finishingWith endColor: CGColor,
+        horizontal: Bool = true
+    ) {
+        guard let gradient = generateGradient(startColor: startColor, endColor: endColor)
+        else { return }
+        let rect = path.boundingBox
+        let startPoint = getStartAndEndPoint(rect: rect, horizontal: horizontal).0
+        let endPoint = getStartAndEndPoint(rect: rect, horizontal: horizontal).1
+
+        saveGState()
+
+        addPath(path)
+
+        clipAndDrawGradient(gradient: gradient, startPoint: startPoint, endPoint: endPoint)
+
+        restoreGState()
+    }
+
+    func drawLinearGradient(
+        in rect: CGRect,
+        startingWith startColor: CGColor,
+        finishingWith endColor: CGColor,
+        horizontal: Bool = true
+    ) {
+        guard let gradient = generateGradient(startColor: startColor, endColor: endColor)
+        else { return }
+        let startPoint = getStartAndEndPoint(rect: rect, horizontal: horizontal).0
+        let endPoint = getStartAndEndPoint(rect: rect, horizontal: horizontal).1
+
+        saveGState()
+
+        addRect(rect)
+
+        clipAndDrawGradient(gradient: gradient, startPoint: startPoint, endPoint: endPoint)
+
+        restoreGState()
+    }
   }
 }
