@@ -18,6 +18,7 @@ class ViewController: UIViewController {
     private var sustainSlider: UISlider!
     private var releaseSlider: UISlider!
     private var releaseCurveSlider: UISlider!
+    private var allCurvesSlider: UISlider!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -52,6 +53,7 @@ class ViewController: UIViewController {
         attackCurveSlider = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
         decayCurveSlider = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
         releaseCurveSlider = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
+        allCurvesSlider = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
 
         attackSlider.value = adsrView.attackAmount
         decaySlider.value = adsrView.decayAmount
@@ -60,6 +62,7 @@ class ViewController: UIViewController {
         attackCurveSlider.value = adsrView.attackCurveAmount
         decayCurveSlider.value = adsrView.decayCurveAmount
         releaseCurveSlider.value = adsrView.releaseCurveAmount
+        allCurvesSlider.value = 1.0
         attackSlider.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
         decaySlider.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
         sustainSlider.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
@@ -67,6 +70,7 @@ class ViewController: UIViewController {
         attackCurveSlider.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
         decayCurveSlider.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
         releaseCurveSlider.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
+        allCurvesSlider.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
         sliderView.addSubview(attackSlider)
         sliderView.addSubview(decaySlider)
         sliderView.addSubview(sustainSlider)
@@ -74,6 +78,7 @@ class ViewController: UIViewController {
         sliderView.addSubview(attackCurveSlider)
         sliderView.addSubview(decayCurveSlider)
         sliderView.addSubview(releaseCurveSlider)
+        sliderView.addSubview(allCurvesSlider)
         view.addSubview(sliderView)
     }
 
@@ -99,6 +104,9 @@ class ViewController: UIViewController {
         if sender == releaseCurveSlider {
             adsrView.releaseCurveAmount = sender.value
         }
+        if sender == allCurvesSlider {
+            adsrView.setAllCurves(curveAmount: sender.value)
+        }
     }
 
     private func setupSliders(frame: CGRect) {
@@ -110,12 +118,14 @@ class ViewController: UIViewController {
                                         xStep: 0, yStep: 2, xSqueezing: 0.9)
         decayCurveSlider.constrainByDivision(source: sliderView, xDivisions: 2, yDivisions: 4,
                                              xStep: 0, yStep: 3, xSqueezing: 0.9)
-        sustainSlider.constrainByDivision(source: sliderView, xDivisions: 2, yDivisions: 3,
+        sustainSlider.constrainByDivision(source: sliderView, xDivisions: 2, yDivisions: 4,
                                           xStep: 1, yStep: 0, xSqueezing: 0.9)
-        releaseSlider.constrainByDivision(source: sliderView, xDivisions: 2, yDivisions: 3,
+        releaseSlider.constrainByDivision(source: sliderView, xDivisions: 2, yDivisions: 4,
                                           xStep: 1, yStep: 1, xSqueezing: 0.9)
-        releaseCurveSlider.constrainByDivision(source: sliderView, xDivisions: 2, yDivisions: 3,
+        releaseCurveSlider.constrainByDivision(source: sliderView, xDivisions: 2, yDivisions: 4,
                                                xStep: 1, yStep: 2, xSqueezing: 0.9)
+        allCurvesSlider.constrainByDivision(source: sliderView, xDivisions: 2, yDivisions: 4,
+                                               xStep: 1, yStep: 3, xSqueezing: 0.9)
     }
 
     override func viewWillLayoutSubviews() {
