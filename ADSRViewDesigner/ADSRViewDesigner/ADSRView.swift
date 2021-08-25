@@ -406,8 +406,10 @@ import UIKit
         context?.saveGState()
         let normalAttackMidPoint = initialPoint.midPoint(highPoint)
         let attackDotPointCurveAdjustment = ((attackCurveAmount * (curve1ControlPoint.midPoint(normalAttackMidPoint).x)) / (CGFloat.pi / 2))
-        let attackDotPointX = normalAttackMidPoint.x - attackDotPointCurveAdjustment + curveStrokeWidth
-            + (pow(attackCurveAmount,2) * (curveStrokeWidth * 2))
+        print("angle \(initialPoint.angleToPoint(pointOnCircle: highPoint))")
+        let strokeAdjust = attackAmount * (curveStrokeWidth)
+        let attackDotPointX = normalAttackMidPoint.x + strokeAdjust
+        // + curveStrokeWidth - strokeAdjust// - attackDotPointCurveAdjustment + curveStrokeWidth            + (pow(attackCurveAmount,2) * (curveStrokeWidth * 2))
         let attackDotPointY = size.height / 2
         let attackDotPoint = CGPoint(x: attackDotPointX, y: attackDotPointY)
         let attackDot = UIBezierPath(arcCenter: attackDotPoint, radius: 6,
@@ -419,14 +421,7 @@ import UIKit
         context?.restoreGState()
 
         // decayDot
-        context?.saveGState()
-        let decayDot = UIBezierPath(arcCenter: sustainPoint, radius: 6,
-                               startAngle: 0, endAngle: CGFloat((Double.pi * 2)), clockwise: true)
-        curveColor.setStroke()
-        curveColor.setFill()
-        decayDot.stroke()
-        decayDot.fill()
-        context?.restoreGState()
+        context?.drawDot(at: sustainPoint, color: curveColor)
     }
 
     /// Draw the view
@@ -441,6 +436,21 @@ import UIKit
                         attackCurveAmount: CGFloat(attackCurveAmount),
                         decayCurveAmount: CGFloat(decayCurveAmount),
                         releaseCurveAmount: CGFloat(releaseCurveAmount))
+    }
+
+}
+
+public extension CGContext {
+
+    func drawDot(at point: CGPoint, color: UIColor) {
+        saveGState()
+        let dot = UIBezierPath(arcCenter: point, radius: 6,
+                               startAngle: 0, endAngle: CGFloat((Double.pi * 2)), clockwise: true)
+        color.setStroke()
+        color.setFill()
+        dot.stroke()
+        dot.fill()
+        restoreGState()
     }
 }
 
@@ -513,8 +523,37 @@ extension CGContext {
 }
 
 extension CGPoint {
-  func midPoint(_ other: CGPoint) -> CGPoint {
-    return CGPoint(x: (self.x + other.x) / 2.0,
-                   y: (self.y + other.y) / 2.0)
-  }
+    func midPoint(_ other: CGPoint) -> CGPoint {
+        return CGPoint(x: (self.x + other.x) / 2.0,
+                       y: (self.y + other.y) / 2.0)
+    }
+
+    func angleBetweenPoints(firstPoint: CGPoint, secondPoint: CGPoint) -> CGFloat {
+        return CGPoint.angleBetweenThreePoints(center: self, firstPoint: firstPoint, secondPoint: secondPoint)
+    }
+
+    static func angleBetweenThreePoints(center: CGPoint, firstPoint: CGPoint, secondPoint: CGPoint) -> CGFloat {
+        let firstAngle = atan2(firstPoint.y - center.y, firstPoint.x - center.x)
+        let secondAnlge = atan2(secondPoint.y - center.y, secondPoint.x - center.x)
+        var angleDiff = firstAngle - secondAnlge
+
+        if angleDiff < 0 {
+            angleDiff *= -1
+        }
+
+        return angleDiff
+    }
+
+    func angleToPoint(pointOnCircle: CGPoint) -> CGFloat {
+
+        let originX = pointOnCircle.x - self.x
+        let originY = pointOnCircle.y - self.y
+        var radians = atan2(originY, originX)
+
+        while radians < 0 {
+            radians += CGFloat(2 * Double.pi)
+        }
+
+        return radians
+    }
 }
