@@ -186,15 +186,17 @@ import UIKit
 
     /// Draw the ADSR envelope
     func drawCurveCanvas(size: CGSize = CGSize(width: 440, height: 151),
-                         attackAmount: CGFloat = 0.5,       // normalised
-                         decayAmount: CGFloat = 0.5,        // normalised
+                         attackAmount: CGFloat = 0.5,           // normalised
+                         decayAmount: CGFloat = 0.5,            // normalised
                          sustainLevel: CGFloat = 0.583,         // normalised
-                         releaseAmount: CGFloat = 0.5,      // normalised
+                         releaseAmount: CGFloat = 0.5,          // normalised
                          attackPadPercentage: CGFloat = 0.1,    // how much % width of the view should pad attack
                          releasePadPercentage: CGFloat = 0.1,   // how much % width of the view should pad attack
-                         attackCurveAmount: CGFloat = 1.0,   // how much % width of the view should pad attack
-                         decayCurveAmount: CGFloat = 1.0,   // how much % width of the view should pad attack
-                         releaseCurveAmount: CGFloat = 1.0)            // how much curve to apply
+                         attackCurveAmount: CGFloat = 1.0,      // how much % width of the view should pad attack
+                         decayCurveAmount: CGFloat = 1.0,       // how much % width of the view should pad attack
+                         releaseCurveAmount: CGFloat = 1.0,     // how much curve to apply
+                         attackPointPlacement: CGFloat = 0.5
+    )
     {
         //// General Declarations
         let context = UIGraphicsGetCurrentContext()
@@ -204,17 +206,19 @@ import UIKit
 
         //// Variable Declarations
         let buffer = CGFloat(10) // curveStrokeWidth / 2.0 // make a little room for drwing the stroke
-        let attackClickRoom = floor(CGFloat(attackPadPercentage * size.width)) // to allow attack to be clicked even if zero
-        let releaseClickRoom = floor(CGFloat(releasePadPercentage * size.width)) // to allow attack to be clicked even if zero
+        let attackClickRoom = floor(CGFloat(attackPadPercentage * width)) // to allow attack to be clicked even if zero
+        let releaseClickRoom = floor(CGFloat(releasePadPercentage * width)) // to allow attack to be clicked even if zero
         let endPointMax = width - releaseClickRoom
         let sectionMax = floor((width * (1.0 - attackPadPercentage - releasePadPercentage)) / 3.3)
         let attackSize = floor(attackAmount * sectionMax)
         let decaySize = floor(decayAmount * sectionMax)
+        let sustainSize = floor(sustainLevel * (height - buffer) + buffer)
         let releaseSize = releaseAmount * sectionMax
+
         let initialPoint = CGPoint(x: attackClickRoom, y: height)
         let endAxes = CGPoint(x: width, y: height)
         let releasePoint = CGPoint(x: endPointMax - sectionMax,
-                                   y: floor(sustainLevel * (height - buffer) + buffer))
+                                   y: sustainSize)
         let endPoint = CGPoint(x: min(endPointMax, (releasePoint.x + releaseSize)), y: height)
         let endMax = CGPoint(x: min(endPoint.x, endPointMax), y: buffer)
         let releaseAxis = CGPoint(x: releasePoint.x, y: endPoint.y)
@@ -223,7 +227,7 @@ import UIKit
         let highPointAxis = CGPoint(x: highPoint.x, y: height)
         let highMax = CGPoint(x: highPoint.x, y: buffer)
         let sustainPoint = CGPoint(x: max(highPoint.x, attackClickRoom + attackSize + decaySize),
-                                   y: floor(sustainLevel * (height - buffer) + buffer))
+                                   y: sustainSize)
         let sustainAxis = CGPoint(x: sustainPoint.x, y: height)
         let initialMax = CGPoint(x: 0, y: buffer)
 
