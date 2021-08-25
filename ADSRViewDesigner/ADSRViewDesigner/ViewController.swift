@@ -11,10 +11,10 @@ class ViewController: UIViewController {
 
     private var adsrView: ADSRView!
     private var sliderView: UIView!
-    private var slider1: UISlider!
-    private var slider2: UISlider!
-    private var slider3: UISlider!
-    private var slider4: UISlider!
+    private var attackSlider: UISlider!
+    private var decaySlider: UISlider!
+    private var sustainSlider: UISlider!
+    private var releaseSlider: UISlider!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,10 +27,10 @@ class ViewController: UIViewController {
         view.addSubview(adsrView)
         adsrView.callback = {[weak self] attack, decay, sustain, release in
             DispatchQueue.main.async { [weak self] in
-                self?.slider1.setValue(attack, animated: true)
-                self?.slider2.setValue(decay, animated: true)
-                self?.slider3.setValue(sustain, animated: true)
-                self?.slider4.setValue(release, animated: true)
+                self?.attackSlider.setValue(attack, animated: true)
+                self?.decaySlider.setValue(decay, animated: true)
+                self?.sustainSlider.setValue(sustain, animated: true)
+                self?.releaseSlider.setValue(release, animated: true)
             }
         }
     }
@@ -42,49 +42,49 @@ class ViewController: UIViewController {
         sliderView.backgroundColor = .lightGray
         let sliderWidth = frame.width * 0.4
         let sliderHeight = frame.width * 0.4
-        slider1 = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
-        slider2 = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
-        slider3 = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
-        slider4 = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
+        attackSlider = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
+        decaySlider = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
+        sustainSlider = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
+        releaseSlider = UISlider(frame: CGRect(x: 0, y: 0, width: sliderWidth, height: sliderHeight))
 
-        slider1.value = Float(adsrView.attackAmount)
-        slider2.value = Float(adsrView.decayAmount)
-        slider3.value = Float(adsrView.sustainLevel)
-        slider4.value = Float(adsrView.releaseAmount)
-        slider1.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
-        slider2.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
-        slider3.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
-        slider4.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
-        sliderView.addSubview(slider1)
-        sliderView.addSubview(slider2)
-        sliderView.addSubview(slider3)
-        sliderView.addSubview(slider4)
+        attackSlider.value = Float(adsrView.attackAmount)
+        decaySlider.value = Float(adsrView.decayAmount)
+        sustainSlider.value = Float(adsrView.sustainLevel)
+        releaseSlider.value = Float(adsrView.releaseAmount)
+        attackSlider.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
+        decaySlider.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
+        sustainSlider.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
+        releaseSlider.addTarget(self, action: #selector(self.sliderValueDidChange(_:)), for: .valueChanged)
+        sliderView.addSubview(attackSlider)
+        sliderView.addSubview(decaySlider)
+        sliderView.addSubview(sustainSlider)
+        sliderView.addSubview(releaseSlider)
         view.addSubview(sliderView)
     }
 
     @objc private func sliderValueDidChange(_ sender: UISlider) {
-        if sender == slider1 {
+        if sender == attackSlider {
             adsrView.attackAmount = sender.value
         }
-        if sender == slider2 {
+        if sender == decaySlider {
             adsrView.decayAmount = sender.value
         }
-        if sender == slider3 {
+        if sender == sustainSlider {
             adsrView.sustainLevel = sender.value
         }
-        if sender == slider4 {
+        if sender == releaseSlider {
             adsrView.releaseAmount = sender.value
         }
     }
 
     private func setupSliders(frame: CGRect) {
-        slider1.constrainByDivision(source: sliderView, divisions: 2, xStep: 0, yStep: 0,
+        attackSlider.constrainByDivision(source: sliderView, divisions: 2, xStep: 0, yStep: 0,
                                   xSqueezing: 0.9)
-        slider2.constrainByDivision(source: sliderView, divisions: 2, xStep: 0, yStep: 1,
+        decaySlider.constrainByDivision(source: sliderView, divisions: 2, xStep: 0, yStep: 1,
                                   xSqueezing: 0.9)
-        slider3.constrainByDivision(source: sliderView, divisions: 2, xStep: 1, yStep: 0,
+        sustainSlider.constrainByDivision(source: sliderView, divisions: 2, xStep: 1, yStep: 0,
                                   xSqueezing: 0.9)
-        slider4.constrainByDivision(source: sliderView, divisions: 2, xStep: 1, yStep: 1,
+        releaseSlider.constrainByDivision(source: sliderView, divisions: 2, xStep: 1, yStep: 1,
                                   xSqueezing: 0.9)
     }
 
