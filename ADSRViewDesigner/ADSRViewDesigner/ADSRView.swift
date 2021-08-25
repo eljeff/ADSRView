@@ -38,6 +38,9 @@ import UIKit
     /// How much curve to apply to the release section - 0 = no curve, 1 = full curve, Default: 1.0
     open var releaseCurveAmount: Float = 1.0 { didSet { setNeedsDisplay() } }
 
+    /// Use gradient or solid color sections, Default: true
+    open var useGradient: Bool = true { didSet { setNeedsDisplay() } }
+
     /// How much area to leave before attack to allow manipulation if attack == 0
     open var attackPaddingPercent: CGFloat = 0.06
 
@@ -290,8 +293,14 @@ import UIKit
                                  controlPoint2: releasePoint)
         releaseAreaPath.addLine(to: releaseAxis)
         releaseAreaPath.close()
-        releaseColor.setFill()
-        releaseAreaPath.fill()
+        if useGradient {
+            context?.drawLinearGradient(in: releaseAreaPath.cgPath, startingWith: sustainColor.cgColor,
+                                        finishingWith: releaseColor.cgColor)
+
+        } else {
+            releaseColor.setFill()
+            releaseAreaPath.fill()
+        }
 
         context?.restoreGState()
 
@@ -324,8 +333,14 @@ import UIKit
                                controlPoint2: highPoint)
         decayAreaPath.addLine(to: highPoint)
         decayAreaPath.close()
-        decayColor.setFill()
-        decayAreaPath.fill()
+        if useGradient {
+            context?.drawLinearGradient(in: decayAreaPath.cgPath, startingWith: decayColor.cgColor,
+                                        finishingWith: sustainColor.cgColor)
+
+        } else {
+            decayColor.setFill()
+            decayAreaPath.fill()
+        }
 
         context?.restoreGState()
 
@@ -340,8 +355,14 @@ import UIKit
                                 controlPoint1: curve1ControlPoint,
                                 controlPoint2: initialPoint)
         attackAreaPath.close()
-        attackColor.setFill()
-        attackAreaPath.fill()
+        if useGradient {
+            context?.drawLinearGradient(in: attackAreaPath.cgPath, startingWith: attackColor.cgColor,
+                                        finishingWith: decayColor.cgColor)
+
+        } else {
+            attackColor.setFill()
+            attackAreaPath.fill()
+        }
 
         context?.restoreGState()
 
@@ -380,4 +401,49 @@ import UIKit
                         decayCurveAmount: CGFloat(decayCurveAmount),
                         releaseCurveAmount: CGFloat(releaseCurveAmount))
     }
+}
+
+extension CGContext {
+  func drawLinearGradient(
+    in path: CGPath,
+    startingWith startColor: CGColor,
+    finishingWith endColor: CGColor,
+    horizontal: Bool = true
+  ) {
+    // 1
+    let colorSpace = CGColorSpaceCreateDeviceRGB()
+
+    // 2
+    let locations = [0.0, 1.0] as [CGFloat]
+
+    // 3
+    let colors = [startColor, endColor] as CFArray
+
+    // 4
+    guard let gradient = CGGradient(
+      colorsSpace: colorSpace,
+      colors: colors,
+      locations: locations
+    ) else {
+      return
+    }
+    let rect = path.boundingBox
+    let startPoint = CGPoint(x: horizontal ? rect.minX : rect.midX, y: horizontal ? rect.midY : rect.minY)
+    let endPoint = CGPoint(x: horizontal ? rect.maxX : rect.midX, y: horizontal ?  rect.midY : rect.maxY)
+
+    // 6
+    saveGState()
+
+    // 7
+    addPath(path)
+    clip()
+    drawLinearGradient(
+      gradient,
+      start: startPoint,
+      end: endPoint,
+      options: CGGradientDrawingOptions()
+    )
+
+    restoreGState()
+  }
 }
