@@ -235,20 +235,23 @@ import UIKit
         let highToSustainControlPoint = CGPoint(x: highPoint.x, y: sustainPoint.y)
         let releaseToEndControlPoint = CGPoint(x: releasePoint.x, y: endPoint.y)
 
+        let attackMidPoint = initialPoint.midPoint(highPoint)
+        let decayMidPoint = highPoint.midPoint(sustainPoint)
+        let releaseMidPoint = releasePoint.midPoint(endPoint)
         let attackCurveControlPoint = CGPoint(x: (attackCurveAmount * initialToHighControlPoint.x)
-                                            + ((1.0 - attackCurveAmount) * initialPoint.x),
+                                            + ((1.0 - attackCurveAmount) * attackMidPoint.x),
                                          y: (attackCurveAmount * initialToHighControlPoint.y)
-                                            + ((1.0 - attackCurveAmount) * initialPoint.y))
+                                            + ((1.0 - attackCurveAmount) * attackMidPoint.y))
 
         let decayCurveControlPoint = CGPoint(x: (decayCurveAmount * highToSustainControlPoint.x)
-                                            + ((1.0 - decayCurveAmount) * highPoint.x),
+                                            + ((1.0 - decayCurveAmount) * decayMidPoint.x),
                                          y: (decayCurveAmount * highToSustainControlPoint.y)
-                                            + ((1.0 - decayCurveAmount) * highPoint.y))
+                                            + ((1.0 - decayCurveAmount) * decayMidPoint.y))
 
         let releaseCurveControlPoint = CGPoint(x: (releaseCurveAmount * releaseToEndControlPoint.x)
-                                            + ((1.0 - releaseCurveAmount) * releasePoint.x),
+                                            + ((1.0 - releaseCurveAmount) * releaseMidPoint.x),
                                          y: (releaseCurveAmount * releaseToEndControlPoint.y)
-                                            + ((1.0 - releaseCurveAmount) * releasePoint.y))
+                                            + ((1.0 - releaseCurveAmount) * releaseMidPoint.y))
 
         //// attackTouchArea Drawing
         context?.saveGState()
