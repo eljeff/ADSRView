@@ -8,6 +8,8 @@
 import UIKit
 
 /// A click and draggable view of an ADSR Envelope (Atttack, Decay, Sustain, Release)
+/// All values are normalised 0->1, so scale them how you would like in your callback
+
 @IBDesignable public class ADSRView: UIView {
     /// Type of function to call when values of the ADSR have changed
     public typealias ADSRCallback = (Float, Float, Float, Float) -> Void
@@ -24,10 +26,22 @@ import UIKit
     /// Release amount, Default: 0.5
     open var releaseAmount: Float = 0.5 { didSet { setNeedsDisplay() } }
 
-    /// How much to slow the  drag - lower is slower, Default: 0.01
+    /// How much to slow the  drag - lower is slower, Default: 0.005
     open var dragSlew: Float = 0.005
 
+    /// How much curve to apply to the attack section - 0 = no curve, 1 = full curve, Default: 1.0
+    open var attackCurveAmount: Float = 1.0 { didSet { setNeedsDisplay() } }
+
+    /// How much curve to apply to the decay section - 0 = no curve, 1 = full curve, Default: 1.0
+    open var decayCurveAmount: Float = 1.0 { didSet { setNeedsDisplay() } }
+
+    /// How much curve to apply to the release section - 0 = no curve, 1 = full curve, Default: 1.0
+    open var releaseCurveAmount: Float = 1.0 { didSet { setNeedsDisplay() } }
+
+    /// How much area to leave before attack to allow manipulation if attack == 0
     open var attackPaddingPercent: CGFloat = 0.06
+
+    /// How much area to leave after release
     open var releasePaddingPercent: CGFloat = 0.01
 
     private var decaySustainTouchAreaPath = UIBezierPath()
@@ -62,6 +76,12 @@ import UIKit
     @IBInspectable open var curveColor: UIColor = .black
 
     private var lastPoint = CGPoint.zero
+
+    public func setAllCurves(curveAmount: Float) {
+        attackCurveAmount = curveAmount
+        decayCurveAmount = curveAmount
+        releaseCurveAmount = curveAmount
+    }
 
     // MARK: - Initialization
 
@@ -156,12 +176,15 @@ import UIKit
 
     /// Draw the ADSR envelope
     func drawCurveCanvas(size: CGSize = CGSize(width: 440, height: 151),
+                         attackAmount: CGFloat = 0.5,       // normalised
+                         decayAmount: CGFloat = 0.5,        // normalised
+                         sustainLevel: CGFloat = 0.583,         // normalised
+                         releaseAmount: CGFloat = 0.5,      // normalised
                          attackPadPercentage: CGFloat = 0.1,    // how much % width of the view should pad attack
-                         attackPercentage: CGFloat = 0.5,       // normalised
-                         decayPercentage: CGFloat = 0.5,
-                         sustainLevel: CGFloat = 0.583,
-                         releasePercentage: CGFloat = 0.5,
-                         releasePadPercentage: CGFloat = 0.1)    // how much % width of the view should pad release)
+                         releasePadPercentage: CGFloat = 0.1,   // how much % width of the view should pad attack
+                         attackCurveAmount: CGFloat = 1.0,   // how much % width of the view should pad attack
+                         decayCurveAmount: CGFloat = 1.0,   // how much % width of the view should pad attack
+                         releaseCurveAmount: CGFloat = 1.0)            // how much curve to apply
     {
         //// General Declarations
         let context = UIGraphicsGetCurrentContext()
@@ -171,9 +194,9 @@ import UIKit
         let releaseClickRoom = CGFloat(releasePadPercentage * size.width) // to allow attack to be clicked even if zero
         let endPointMax = size.width - releaseClickRoom
         let sectionMax = (size.width * (1.0 - attackPadPercentage - releasePadPercentage)) / 3.3
-        let attackSize = attackPercentage * sectionMax
-        let decaySize = decayPercentage * sectionMax
-        let releaseSize = releasePercentage * sectionMax
+        let attackSize = attackAmount * sectionMax
+        let decaySize = decayAmount * sectionMax
+        let releaseSize = releaseAmount * sectionMax
         let initialPoint = CGPoint(x: attackClickRoom, y: size.height)
         let buffer = CGFloat(10) // curveStrokeWidth / 2.0 // make a little room for drwing the stroke
         let endAxes = CGPoint(x: size.width, y: size.height)
@@ -193,6 +216,21 @@ import UIKit
         let initialToHighControlPoint = CGPoint(x: initialPoint.x, y: highPoint.y)
         let highToSustainControlPoint = CGPoint(x: highPoint.x, y: sustainPoint.y)
         let releaseToEndControlPoint = CGPoint(x: releasePoint.x, y: endPoint.y)
+
+        let curve1ControlPoint = CGPoint(x: (attackCurveAmount * initialToHighControlPoint.x)
+                                            + ((1.0 - attackCurveAmount) * initialPoint.x),
+                                         y: (attackCurveAmount * initialToHighControlPoint.y)
+                                            + ((1.0 - attackCurveAmount) * initialPoint.y))
+
+        let curve2ControlPoint = CGPoint(x: (decayCurveAmount * highToSustainControlPoint.x)
+                                            + ((1.0 - decayCurveAmount) * highPoint.x),
+                                         y: (decayCurveAmount * highToSustainControlPoint.y)
+                                            + ((1.0 - decayCurveAmount) * highPoint.y))
+
+        let curve3ControlPoint = CGPoint(x: (releaseCurveAmount * releaseToEndControlPoint.x)
+                                            + ((1.0 - releaseCurveAmount) * releasePoint.x),
+                                         y: (releaseCurveAmount * releaseToEndControlPoint.y)
+                                            + ((1.0 - releaseCurveAmount) * releasePoint.y))
 
         //// attackTouchArea Drawing
         context?.saveGState()
@@ -248,7 +286,7 @@ import UIKit
                                  controlPoint1: releaseAxis,
                                  controlPoint2: endPoint)
         releaseAreaPath.addCurve(to: releasePoint,
-                                 controlPoint1: releaseToEndControlPoint,
+                                 controlPoint1: curve3ControlPoint,
                                  controlPoint2: releasePoint)
         releaseAreaPath.addLine(to: releaseAxis)
         releaseAreaPath.close()
@@ -282,7 +320,7 @@ import UIKit
                                controlPoint1: sustainAxis,
                                controlPoint2: sustainPoint)
         decayAreaPath.addCurve(to: highPoint,
-                               controlPoint1: highToSustainControlPoint,
+                               controlPoint1: curve2ControlPoint,
                                controlPoint2: highPoint)
         decayAreaPath.addLine(to: highPoint)
         decayAreaPath.close()
@@ -299,7 +337,7 @@ import UIKit
         attackAreaPath.addLine(to: highPointAxis)
         attackAreaPath.addLine(to: highPoint)
         attackAreaPath.addCurve(to: initialPoint,
-                                controlPoint1: initialToHighControlPoint,
+                                controlPoint1: curve1ControlPoint,
                                 controlPoint2: initialPoint)
         attackAreaPath.close()
         attackColor.setFill()
@@ -314,14 +352,14 @@ import UIKit
         curvePath.move(to: initialPoint)
         curvePath.addCurve(to: highPoint,
                            controlPoint1: initialPoint,
-                           controlPoint2: initialToHighControlPoint)
+                           controlPoint2: curve1ControlPoint)
         curvePath.addCurve(to: sustainPoint,
                            controlPoint1: highPoint,
-                           controlPoint2: highToSustainControlPoint)
+                           controlPoint2: curve2ControlPoint)
         curvePath.addLine(to: releasePoint)
         curvePath.addCurve(to: endPoint,
                            controlPoint1: releasePoint,
-                           controlPoint2: releaseToEndControlPoint)
+                           controlPoint2: curve3ControlPoint)
         curveColor.setStroke()
         curvePath.lineWidth = curveStrokeWidth
         curvePath.stroke()
@@ -332,10 +370,14 @@ import UIKit
     /// Draw the view
     override public func draw(_ rect: CGRect) {
         drawCurveCanvas(size: rect.size,
-                        attackPadPercentage: attackPaddingPercent,
-                        attackPercentage: CGFloat(attackAmount),
-                        decayPercentage: CGFloat(decayAmount),
+                        attackAmount: CGFloat(attackAmount),
+                        decayAmount: CGFloat(decayAmount),
                         sustainLevel: 1.0 - CGFloat(sustainLevel),
-                        releasePercentage: CGFloat(releaseAmount), releasePadPercentage: releasePaddingPercent)
+                        releaseAmount: CGFloat(releaseAmount),
+                        attackPadPercentage: attackPaddingPercent,
+                        releasePadPercentage: releasePaddingPercent,
+                        attackCurveAmount: CGFloat(attackCurveAmount),
+                        decayCurveAmount: CGFloat(decayCurveAmount),
+                        releaseCurveAmount: CGFloat(releaseCurveAmount))
     }
 }
