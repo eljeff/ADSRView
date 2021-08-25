@@ -418,8 +418,8 @@ import UIKit
         let attackDotPointX = normalAttackMidPoint.x - curveAdjustment
         let attackDotPointY = sustainPoint.y
         print("normal \(normalAttackMidPoint.x) adjusted \(attackDotPointX) control \(attackCurveControlPoint.x) controlRatio \(controlRatio)")
-        let pointX = quadBezier(percent: 0.5, start: initialPoint.x, control: attackCurveControlPoint.x, end: highPoint.x)
-        let pointY = quadBezier(percent: 0.5, start: initialPoint.y, control: attackCurveControlPoint.y, end: highPoint.y)
+        let pointX = quadBezier(percent: 0.5, start: initialPoint.x, control: attackCurveControlPoint.x, end: highPoint.x) + (attackAmount * attackCurveAmount * 6)
+        let pointY = quadBezier(percent: 0.5, start: initialPoint.y, control: attackCurveControlPoint.y, end: highPoint.y) + (attackAmount * attackCurveAmount * 6)
         let newPoint = CGPoint(x: pointX, y: pointY)
         let attackDotPoint = CGPoint(x: attackDotPointX, y: attackDotPointY)
         context?.drawDot(at: newPoint, color: curveColor)
