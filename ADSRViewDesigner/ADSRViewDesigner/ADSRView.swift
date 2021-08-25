@@ -401,6 +401,32 @@ import UIKit
         curvePath.stroke()
 
         context?.restoreGState()
+
+        // attackDot
+        context?.saveGState()
+        let normalAttackMidPoint = initialPoint.midPoint(highPoint)
+        let attackDotPointCurveAdjustment = ((attackCurveAmount * (curve1ControlPoint.midPoint(normalAttackMidPoint).x)) / (CGFloat.pi / 2))
+        let attackDotPointX = normalAttackMidPoint.x - attackDotPointCurveAdjustment + curveStrokeWidth
+            + (pow(attackCurveAmount,2) * (curveStrokeWidth * 2))
+        let attackDotPointY = size.height / 2
+        let attackDotPoint = CGPoint(x: attackDotPointX, y: attackDotPointY)
+        let attackDot = UIBezierPath(arcCenter: attackDotPoint, radius: 6,
+                               startAngle: 0, endAngle: CGFloat((Double.pi * 2)), clockwise: true)
+        curveColor.setStroke()
+        curveColor.setFill()
+        attackDot.stroke()
+        attackDot.fill()
+        context?.restoreGState()
+
+        // decayDot
+        context?.saveGState()
+        let decayDot = UIBezierPath(arcCenter: sustainPoint, radius: 6,
+                               startAngle: 0, endAngle: CGFloat((Double.pi * 2)), clockwise: true)
+        curveColor.setStroke()
+        curveColor.setFill()
+        decayDot.stroke()
+        decayDot.fill()
+        context?.restoreGState()
     }
 
     /// Draw the view
@@ -484,5 +510,11 @@ extension CGContext {
 
         restoreGState()
     }
+}
+
+extension CGPoint {
+  func midPoint(_ other: CGPoint) -> CGPoint {
+    return CGPoint(x: (self.x + other.x) / 2.0,
+                   y: (self.y + other.y) / 2.0)
   }
 }

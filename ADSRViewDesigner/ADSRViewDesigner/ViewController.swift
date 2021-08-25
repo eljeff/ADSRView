@@ -24,6 +24,7 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         addADSRView(frame: view.frame)
         addSliderView(frame: view.frame, yOffset: adsrView.frame.height)
+//        view.backgroundColor = .black
     }
 
     private func addADSRView(frame: CGRect) {
@@ -37,6 +38,8 @@ class ViewController: UIViewController {
                 self?.releaseSlider.setValue(release, animated: true)
             }
         }
+        adsrView.setAllColors(color: .clear)
+        adsrView.curveColor = .green
     }
 
     private func addSliderView(frame: CGRect, yOffset: CGFloat) {
