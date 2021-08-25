@@ -106,6 +106,9 @@ class ViewController: UIViewController {
         }
         if sender == allCurvesSlider {
             adsrView.setAllCurves(curveAmount: sender.value)
+            attackCurveSlider.value = sender.value
+            decayCurveSlider.value = sender.value
+            releaseCurveSlider.value = sender.value
         }
     }
 
