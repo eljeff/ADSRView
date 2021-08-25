@@ -41,6 +41,9 @@ import UIKit
     /// Use gradient or solid color sections, Default: true
     open var useGradient: Bool = true { didSet { setNeedsDisplay() } }
 
+    /// Draw control points or not, Default: false - needs better math to work properly
+    open var drawControlPoints: Bool = false { didSet { setNeedsDisplay() } }
+
     /// How much area to leave before attack to allow manipulation if attack == 0
     open var attackPaddingPercent: CGFloat = 0.06
 
@@ -195,7 +198,8 @@ import UIKit
                          attackCurveAmount: CGFloat = 1.0,      // how much % width of the view should pad attack
                          decayCurveAmount: CGFloat = 1.0,       // how much % width of the view should pad attack
                          releaseCurveAmount: CGFloat = 1.0,     // how much curve to apply
-                         attackPointPlacement: CGFloat = 0.5
+                         attackPointPlacement: CGFloat = 0.5,
+                         drawControlPoints: Bool = false
     )
     {
         //// General Declarations
@@ -405,30 +409,27 @@ import UIKit
 
         context?.restoreGState()
 
-        // attackDot
-        context?.saveGState()
-        let normalAttackMidPoint = initialPoint.midPoint(highPoint)
-        let ratio = width / height
-        let controlRatio = attackCurveControlPoint.x / normalAttackMidPoint.x
-        let comparePoint = CGPoint(x: attackCurveControlPoint.x, y: normalAttackMidPoint.y)
-        let distance = normalAttackMidPoint.distanceToPoint(otherPoint: comparePoint)
-        print("distance \(distance)")
-        let curveAdjustment = (attackCurveAmount * attackAmount * 70)
+        if !drawControlPoints {
+            return
+        }
 
-        let attackDotPointX = normalAttackMidPoint.x - curveAdjustment
-        let attackDotPointY = sustainPoint.y
-        print("normal \(normalAttackMidPoint.x) adjusted \(attackDotPointX) control \(attackCurveControlPoint.x) controlRatio \(controlRatio)")
-        let pointX = quadBezier(percent: 0.5, start: initialPoint.x, control: attackCurveControlPoint.x, end: highPoint.x) + (attackAmount * attackCurveAmount * 6)
-        let pointY = quadBezier(percent: 0.5, start: initialPoint.y, control: attackCurveControlPoint.y, end: highPoint.y) + (attackAmount * attackCurveAmount * 6)
-        let newPoint = CGPoint(x: pointX, y: pointY)
+        // attackDot
+        let attackCurveAdjustment = (attackCurveAmount * attackAmount * 5.5) //FIXME - why this 6 works?
+        let attackDotPointX = quadBezier(percent: 0.5, start: initialPoint.x, control: attackCurveControlPoint.x, end: highPoint.x) + attackCurveAdjustment
+        let attackDotPointY = quadBezier(percent: 0.5, start: initialPoint.y, control: attackCurveControlPoint.y, end: highPoint.y) + attackCurveAdjustment
         let attackDotPoint = CGPoint(x: attackDotPointX, y: attackDotPointY)
-        context?.drawDot(at: newPoint, color: curveColor)
+        context?.drawDot(at: attackDotPoint, color: curveColor)
 
         // decayDot
         context?.drawDot(at: sustainPoint, color: curveColor)
 
-        context?.drawDot(at: attackCurveControlPoint, color: .red)
-        context?.drawDot(at: comparePoint, color: .blue)
+        // releaseDot
+        let releaseCurveAdjustment = (releaseCurveAmount * releaseAmount * 5.5 ) //FIXME - why this 6 works?
+        let releaseCurveAdjustmentY = (releaseCurveAmount * releaseAmount * 5.5 * sustainLevel ) //FIXME - why this 6 works?
+        let releaseDotPointX = quadBezier(percent: 0.5, start: releasePoint.x, control: releaseCurveControlPoint.x, end: endPoint.x) + releaseCurveAdjustment
+        let releaseDotPointY = quadBezier(percent: 0.5, start: releasePoint.y, control: releaseCurveControlPoint.y, end: endPoint.y) - releaseCurveAdjustmentY
+        let releaseDotPoint = CGPoint(x: releaseDotPointX, y: releaseDotPointY)
+        context?.drawDot(at: releaseDotPoint, color: curveColor)
 
     }
 
@@ -451,7 +452,8 @@ import UIKit
                         releasePadPercentage: releasePaddingPercent,
                         attackCurveAmount: CGFloat(attackCurveAmount),
                         decayCurveAmount: CGFloat(decayCurveAmount),
-                        releaseCurveAmount: CGFloat(releaseCurveAmount))
+                        releaseCurveAmount: CGFloat(releaseCurveAmount),
+                        drawControlPoints: drawControlPoints)
     }
 
 }

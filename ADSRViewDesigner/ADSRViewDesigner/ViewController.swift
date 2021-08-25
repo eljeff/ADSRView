@@ -41,6 +41,7 @@ class ViewController: UIViewController {
         adsrView.setAllColors(color: .clear)
         adsrView.curveColor = .green
         adsrView.setAllCurves(curveAmount: 1)
+        adsrView.drawControlPoints = true
     }
 
     private func addSliderView(frame: CGRect, yOffset: CGFloat) {
