@@ -192,29 +192,32 @@ import UIKit
         //// General Declarations
         let context = UIGraphicsGetCurrentContext()
 
+        let width = floor(size.width)
+        let height = floor(size.height)
+
         //// Variable Declarations
         let buffer = CGFloat(10) // curveStrokeWidth / 2.0 // make a little room for drwing the stroke
         let attackClickRoom = floor(CGFloat(attackPadPercentage * size.width)) // to allow attack to be clicked even if zero
         let releaseClickRoom = floor(CGFloat(releasePadPercentage * size.width)) // to allow attack to be clicked even if zero
-        let endPointMax = floor(size.width - releaseClickRoom)
-        let sectionMax = floor((size.width * (1.0 - attackPadPercentage - releasePadPercentage)) / 3.3)
+        let endPointMax = width - releaseClickRoom
+        let sectionMax = floor((width * (1.0 - attackPadPercentage - releasePadPercentage)) / 3.3)
         let attackSize = floor(attackAmount * sectionMax)
         let decaySize = floor(decayAmount * sectionMax)
-        let releaseSize = floor(releaseAmount * sectionMax)
-        let initialPoint = CGPoint(x: attackClickRoom, y: floor(size.height))
-        let endAxes = CGPoint(x: floor(size.width), y: floor(size.height))
-        let releasePoint = CGPoint(x: floor(endPointMax - (sectionMax)),
-                                   y: floor(sustainLevel * (size.height - buffer) + buffer))
-        let endPoint = CGPoint(x: floor(min(endPointMax, (releasePoint.x + releaseSize))), y: floor(size.height))
-        let endMax = CGPoint(x: floor(min(endPoint.x, endPointMax)), y: buffer)
-        let releaseAxis = CGPoint(x: floor(releasePoint.x), y: floor(endPoint.y))
-        let releaseMax = CGPoint(x: floor(releasePoint.x), y: buffer)
+        let releaseSize = releaseAmount * sectionMax
+        let initialPoint = CGPoint(x: attackClickRoom, y: height)
+        let endAxes = CGPoint(x: width, y: height)
+        let releasePoint = CGPoint(x: endPointMax - sectionMax,
+                                   y: floor(sustainLevel * (height - buffer) + buffer))
+        let endPoint = CGPoint(x: min(endPointMax, (releasePoint.x + releaseSize)), y: height)
+        let endMax = CGPoint(x: min(endPoint.x, endPointMax), y: buffer)
+        let releaseAxis = CGPoint(x: releasePoint.x, y: endPoint.y)
+        let releaseMax = CGPoint(x: releasePoint.x, y: buffer)
         let highPoint = CGPoint(x: attackClickRoom + attackSize, y: buffer)
-        let highPointAxis = CGPoint(x: floor(highPoint.x), y: floor(size.height))
-        let highMax = CGPoint(x: floor(highPoint.x), y: buffer)
-        let sustainPoint = CGPoint(x: floor(max(highPoint.x, attackClickRoom + attackSize + decaySize)),
-                                   y: floor(sustainLevel * (size.height - buffer) + buffer))
-        let sustainAxis = CGPoint(x: floor(sustainPoint.x), y: floor(size.height))
+        let highPointAxis = CGPoint(x: highPoint.x, y: height)
+        let highMax = CGPoint(x: highPoint.x, y: buffer)
+        let sustainPoint = CGPoint(x: max(highPoint.x, attackClickRoom + attackSize + decaySize),
+                                   y: floor(sustainLevel * (height - buffer) + buffer))
+        let sustainAxis = CGPoint(x: sustainPoint.x, y: height)
         let initialMax = CGPoint(x: 0, y: buffer)
 
         let initialToHighControlPoint = CGPoint(x: initialPoint.x, y: highPoint.y)
