@@ -86,6 +86,13 @@ import UIKit
         releaseCurveAmount = curveAmount
     }
 
+    public func setAllColors(color: UIColor) {
+        attackColor = color
+        decayColor = color
+        sustainColor = color
+        releaseColor = color
+    }
+
     // MARK: - Initialization
 
     /// Initialize the view, usually with a callback
