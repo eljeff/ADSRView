@@ -40,7 +40,7 @@ class ViewController: UIViewController {
         }
         adsrView.setAllColors(color: .clear)
         adsrView.curveColor = .green
-        adsrView.setAllCurves(curveAmount: 0)
+        adsrView.setAllCurves(curveAmount: 1)
     }
 
     private func addSliderView(frame: CGRect, yOffset: CGFloat) {
@@ -140,6 +140,7 @@ class ViewController: UIViewController {
         adsrView.frame = CGRect(x: 0, y: 0, width: view.frame.width, height: adsrHeight)
         sliderView.frame = CGRect(x: 0, y: view.frame.height, width: view.frame.width, height: 1.0 - adsrHeight)
         setupSliders(frame: sliderView.bounds)
+        adsrView.setNeedsDisplay()
     }
 }
 

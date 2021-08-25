@@ -235,17 +235,17 @@ import UIKit
         let highToSustainControlPoint = CGPoint(x: highPoint.x, y: sustainPoint.y)
         let releaseToEndControlPoint = CGPoint(x: releasePoint.x, y: endPoint.y)
 
-        let curve1ControlPoint = CGPoint(x: (attackCurveAmount * initialToHighControlPoint.x)
+        let attackCurveControlPoint = CGPoint(x: (attackCurveAmount * initialToHighControlPoint.x)
                                             + ((1.0 - attackCurveAmount) * initialPoint.x),
                                          y: (attackCurveAmount * initialToHighControlPoint.y)
                                             + ((1.0 - attackCurveAmount) * initialPoint.y))
 
-        let curve2ControlPoint = CGPoint(x: (decayCurveAmount * highToSustainControlPoint.x)
+        let decayCurveControlPoint = CGPoint(x: (decayCurveAmount * highToSustainControlPoint.x)
                                             + ((1.0 - decayCurveAmount) * highPoint.x),
                                          y: (decayCurveAmount * highToSustainControlPoint.y)
                                             + ((1.0 - decayCurveAmount) * highPoint.y))
 
-        let curve3ControlPoint = CGPoint(x: (releaseCurveAmount * releaseToEndControlPoint.x)
+        let releaseCurveControlPoint = CGPoint(x: (releaseCurveAmount * releaseToEndControlPoint.x)
                                             + ((1.0 - releaseCurveAmount) * releasePoint.x),
                                          y: (releaseCurveAmount * releaseToEndControlPoint.y)
                                             + ((1.0 - releaseCurveAmount) * releasePoint.y))
@@ -304,7 +304,7 @@ import UIKit
                                  controlPoint1: releaseAxis,
                                  controlPoint2: endPoint)
         releaseAreaPath.addCurve(to: releasePoint,
-                                 controlPoint1: curve3ControlPoint,
+                                 controlPoint1: releaseCurveControlPoint,
                                  controlPoint2: releasePoint)
         releaseAreaPath.addLine(to: releaseAxis)
         releaseAreaPath.close()
@@ -344,7 +344,7 @@ import UIKit
                                controlPoint1: sustainAxis,
                                controlPoint2: sustainPoint)
         decayAreaPath.addCurve(to: highPoint,
-                               controlPoint1: curve2ControlPoint,
+                               controlPoint1: decayCurveControlPoint,
                                controlPoint2: highPoint)
         decayAreaPath.addLine(to: highPoint)
         decayAreaPath.close()
@@ -367,7 +367,7 @@ import UIKit
         attackAreaPath.addLine(to: highPointAxis)
         attackAreaPath.addLine(to: highPoint)
         attackAreaPath.addCurve(to: initialPoint,
-                                controlPoint1: curve1ControlPoint,
+                                controlPoint1: attackCurveControlPoint,
                                 controlPoint2: initialPoint)
         attackAreaPath.close()
         if useGradient {
@@ -388,14 +388,14 @@ import UIKit
         curvePath.move(to: initialPoint)
         curvePath.addCurve(to: highPoint,
                            controlPoint1: initialPoint,
-                           controlPoint2: curve1ControlPoint)
+                           controlPoint2: attackCurveControlPoint)
         curvePath.addCurve(to: sustainPoint,
                            controlPoint1: highPoint,
-                           controlPoint2: curve2ControlPoint)
+                           controlPoint2: decayCurveControlPoint)
         curvePath.addLine(to: releasePoint)
         curvePath.addCurve(to: endPoint,
                            controlPoint1: releasePoint,
-                           controlPoint2: curve3ControlPoint)
+                           controlPoint2: releaseCurveControlPoint)
         curveColor.setStroke()
         curvePath.lineWidth = curveStrokeWidth
         curvePath.stroke()
@@ -405,23 +405,36 @@ import UIKit
         // attackDot
         context?.saveGState()
         let normalAttackMidPoint = initialPoint.midPoint(highPoint)
-        let attackDotPointCurveAdjustment = ((attackCurveAmount * (curve1ControlPoint.midPoint(normalAttackMidPoint).x)) / (CGFloat.pi / 2))
-        print("angle \(initialPoint.angleToPoint(pointOnCircle: highPoint))")
-        let strokeAdjust = attackAmount * (curveStrokeWidth)
-        let attackDotPointX = normalAttackMidPoint.x + strokeAdjust
-        // + curveStrokeWidth - strokeAdjust// - attackDotPointCurveAdjustment + curveStrokeWidth            + (pow(attackCurveAmount,2) * (curveStrokeWidth * 2))
-        let attackDotPointY = size.height / 2
+        let ratio = width / height
+        let controlRatio = attackCurveControlPoint.x / normalAttackMidPoint.x
+        let comparePoint = CGPoint(x: attackCurveControlPoint.x, y: normalAttackMidPoint.y)
+        let distance = normalAttackMidPoint.distanceToPoint(otherPoint: comparePoint)
+        print("distance \(distance)")
+        let curveAdjustment = (attackCurveAmount * attackAmount * 70)
+
+        let attackDotPointX = normalAttackMidPoint.x - curveAdjustment
+        let attackDotPointY = sustainPoint.y
+        print("normal \(normalAttackMidPoint.x) adjusted \(attackDotPointX) control \(attackCurveControlPoint.x) controlRatio \(controlRatio)")
+        let pointX = quadBezier(percent: 0.5, start: initialPoint.x, control: attackCurveControlPoint.x, end: highPoint.x)
+        let pointY = quadBezier(percent: 0.5, start: initialPoint.y, control: attackCurveControlPoint.y, end: highPoint.y)
+        let newPoint = CGPoint(x: pointX, y: pointY)
         let attackDotPoint = CGPoint(x: attackDotPointX, y: attackDotPointY)
-        let attackDot = UIBezierPath(arcCenter: attackDotPoint, radius: 6,
-                               startAngle: 0, endAngle: CGFloat((Double.pi * 2)), clockwise: true)
-        curveColor.setStroke()
-        curveColor.setFill()
-        attackDot.stroke()
-        attackDot.fill()
-        context?.restoreGState()
+        context?.drawDot(at: newPoint, color: curveColor)
 
         // decayDot
         context?.drawDot(at: sustainPoint, color: curveColor)
+
+        context?.drawDot(at: attackCurveControlPoint, color: .red)
+        context?.drawDot(at: comparePoint, color: .blue)
+
+    }
+
+    private func quadBezier(percent: CGFloat, start: CGFloat, control: CGFloat, end: CGFloat) -> CGFloat {
+        let inv = 1.0 - percent
+        let pow = inv * inv
+        let powPercent = percent * percent
+        let output = start * pow + 2.0 * control * inv * percent + end * powPercent
+        return output
     }
 
     /// Draw the view
@@ -527,9 +540,15 @@ extension CGPoint {
         return CGPoint(x: (self.x + other.x) / 2.0,
                        y: (self.y + other.y) / 2.0)
     }
+}
 
-    func angleBetweenPoints(firstPoint: CGPoint, secondPoint: CGPoint) -> CGFloat {
-        return CGPoint.angleBetweenThreePoints(center: self, firstPoint: firstPoint, secondPoint: secondPoint)
+public extension CGPoint {
+
+    static func pointOnCircle(center: CGPoint, radius: CGFloat, angle: CGFloat) -> CGPoint {
+        let x = center.x + radius * cos(angle)
+        let y = center.y + radius * sin(angle)
+
+        return CGPoint(x: x, y: y)
     }
 
     static func angleBetweenThreePoints(center: CGPoint, firstPoint: CGPoint, secondPoint: CGPoint) -> CGFloat {
@@ -544,6 +563,10 @@ extension CGPoint {
         return angleDiff
     }
 
+    func angleBetweenPoints(firstPoint: CGPoint, secondPoint: CGPoint) -> CGFloat {
+        return CGPoint.angleBetweenThreePoints(center: self, firstPoint: firstPoint, secondPoint: secondPoint)
+    }
+
     func angleToPoint(pointOnCircle: CGPoint) -> CGFloat {
 
         let originX = pointOnCircle.x - self.x
@@ -555,5 +578,81 @@ extension CGPoint {
         }
 
         return radians
+    }
+
+    static func pointOnCircleAtArcDistance(center: CGPoint,
+                                           point: CGPoint,
+                                           radius: CGFloat,
+                                           arcDistance: CGFloat,
+                                           clockwise: Bool) -> CGPoint {
+
+        var angle = center.angleToPoint(pointOnCircle: point);
+
+        if clockwise {
+            angle = angle + (arcDistance / radius)
+        } else {
+            angle = angle - (arcDistance / radius)
+        }
+
+        return self.pointOnCircle(center: center, radius: radius, angle: angle)
+
+    }
+
+    func distanceToPoint(otherPoint: CGPoint) -> CGFloat {
+        return sqrt(pow((otherPoint.x - x), 2) + pow((otherPoint.y - y), 2))
+    }
+
+    static func CGPointRound(_ point: CGPoint) -> CGPoint {
+        return CGPoint(x: CoreGraphics.round(point.x), y: CoreGraphics.round(point.y))
+    }
+
+    static func intersectingPointsOfCircles(firstCenter: CGPoint, secondCenter: CGPoint, firstRadius: CGFloat, secondRadius: CGFloat ) -> (firstPoint: CGPoint?, secondPoint: CGPoint?) {
+
+        let distance = firstCenter.distanceToPoint(otherPoint: secondCenter)
+        let m = firstRadius + secondRadius
+        var n = firstRadius - secondRadius
+
+        if n < 0 {
+            n = n * -1
+        }
+
+        //no intersection
+        if distance > m {
+            return (firstPoint: nil, secondPoint: nil)
+        }
+
+        //circle is inside other circle
+        if distance < n {
+            return (firstPoint: nil, secondPoint: nil)
+        }
+
+        //same circle
+        if distance == 0 && firstRadius == secondRadius {
+            return (firstPoint: nil, secondPoint: nil)
+        }
+
+        let a = ((firstRadius * firstRadius) - (secondRadius * secondRadius) + (distance * distance)) / (2 * distance)
+        let h = sqrt(firstRadius * firstRadius - a * a)
+
+        var p = CGPoint.zero
+        p.x = firstCenter.x + (a / distance) * (secondCenter.x - firstCenter.x)
+        p.y = firstCenter.y + (a / distance) * (secondCenter.y - firstCenter.y)
+
+        //only one point intersecting
+        if distance == firstRadius + secondRadius {
+            return (firstPoint: p, secondPoint: nil)
+        }
+
+        var p1 = CGPoint.zero
+        var p2 = CGPoint.zero
+
+        p1.x = p.x + (h / distance) * (secondCenter.y - firstCenter.y)
+        p1.y = p.y - (h / distance) * (secondCenter.x - firstCenter.x)
+
+        p2.x = p.x - (h / distance) * (secondCenter.y - firstCenter.y)
+        p2.y = p.y + (h / distance) * (secondCenter.x - firstCenter.x)
+
+        //return both points
+        return (firstPoint: p1, secondPoint: p2)
     }
 }
