@@ -415,8 +415,10 @@ import UIKit
 
         // attackDot
         let attackCurveAdjustment = (attackCurveAmount * attackAmount * 5.5) //FIXME - why this 6 works?
-        let attackDotPointX = quadBezier(percent: 0.5, start: initialPoint.x, control: attackCurveControlPoint.x, end: highPoint.x) + attackCurveAdjustment
-        let attackDotPointY = quadBezier(percent: 0.5, start: initialPoint.y, control: attackCurveControlPoint.y, end: highPoint.y) + attackCurveAdjustment
+        let attackDotPointX = quadBezier(percent: 0.5, start: initialPoint.x,
+                                         control: attackCurveControlPoint.x, end: highPoint.x) + attackCurveAdjustment
+        let attackDotPointY = quadBezier(percent: 0.5, start: initialPoint.y,
+                                         control: attackCurveControlPoint.y, end: highPoint.y) + attackCurveAdjustment
         let attackDotPoint = CGPoint(x: attackDotPointX, y: attackDotPointY)
         context?.drawDot(at: attackDotPoint, color: curveColor)
 
@@ -455,7 +457,6 @@ import UIKit
                         releaseCurveAmount: CGFloat(releaseCurveAmount),
                         drawControlPoints: drawControlPoints)
     }
-
 }
 
 public extension CGContext {
@@ -473,30 +474,6 @@ public extension CGContext {
 }
 
 extension CGContext {
-
-    private func generateGradient( startColor: CGColor,
-                                   endColor: CGColor) -> CGGradient? {
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let locations = [0.0, 1.0] as [CGFloat]
-        let colors = [startColor, endColor] as CFArray
-        return CGGradient( colorsSpace: colorSpace, colors: colors, locations: locations)
-    }
-
-    private func getStartAndEndPoint(rect: CGRect, horizontal: Bool = true) -> (CGPoint, CGPoint) {
-        let startPoint = CGPoint(x: horizontal ? rect.minX : rect.midX, y: horizontal ? rect.midY : rect.minY)
-        let endPoint = CGPoint(x: horizontal ? rect.maxX : rect.midX, y: horizontal ?  rect.midY : rect.maxY)
-        return (startPoint, endPoint)
-    }
-
-    private func clipAndDrawGradient(gradient: CGGradient, startPoint: CGPoint, endPoint: CGPoint) {
-        clip()
-        drawLinearGradient(
-            gradient,
-            start: startPoint,
-            end: endPoint,
-            options: CGGradientDrawingOptions()
-        )
-    }
 
     func drawLinearGradient(
         in path: CGPath,
@@ -537,6 +514,30 @@ extension CGContext {
         clipAndDrawGradient(gradient: gradient, startPoint: startPoint, endPoint: endPoint)
 
         restoreGState()
+    }
+
+    private func generateGradient( startColor: CGColor,
+                                   endColor: CGColor) -> CGGradient? {
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let locations = [0.0, 1.0] as [CGFloat]
+        let colors = [startColor, endColor] as CFArray
+        return CGGradient( colorsSpace: colorSpace, colors: colors, locations: locations)
+    }
+
+    private func getStartAndEndPoint(rect: CGRect, horizontal: Bool = true) -> (CGPoint, CGPoint) {
+        let startPoint = CGPoint(x: horizontal ? rect.minX : rect.midX, y: horizontal ? rect.midY : rect.minY)
+        let endPoint = CGPoint(x: horizontal ? rect.maxX : rect.midX, y: horizontal ?  rect.midY : rect.maxY)
+        return (startPoint, endPoint)
+    }
+
+    private func clipAndDrawGradient(gradient: CGGradient, startPoint: CGPoint, endPoint: CGPoint) {
+        clip()
+        drawLinearGradient(
+            gradient,
+            start: startPoint,
+            end: endPoint,
+            options: CGGradientDrawingOptions()
+        )
     }
 }
 
